@@ -1,0 +1,6 @@
+[submodule "aluminate-website-frontend"]
+	path = aluminate-website-frontend
+	url = https://github.com/AluminateOrg/aluminate-website-frontend.git
+[submodule "aluminate-admin-frontend"]
+	path = aluminate-admin-frontend
+	url = https://github.com/AluminateOrg/aluminate-admin-frontend.git
