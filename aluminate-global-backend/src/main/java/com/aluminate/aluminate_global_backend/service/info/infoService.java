@@ -43,7 +43,7 @@ public class infoService {
                     admin.getPhone(),
                     admin.isEmailVerified()
             );
-            logger.info("created AdminDTO");
+
 
             OrganizationDTO orgDTO = new OrganizationDTO(
                     org.getId(),
@@ -57,8 +57,7 @@ public class infoService {
                     org.getCurrentMemberCount(),
                     org.getStatus()
             );
-            logger.info("created OrganizationDTO");
-            logger.info("created preparing response...");
+
 
             return new InfoResponse(adminDTO, orgDTO);
         }catch (Exception e){

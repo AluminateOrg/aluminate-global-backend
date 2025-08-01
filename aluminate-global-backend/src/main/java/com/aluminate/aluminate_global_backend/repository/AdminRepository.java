@@ -11,4 +11,6 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
     Optional<Admin> findAdminByEmail(String email);
 
     boolean existsByEmail(@NotBlank(message = "cannot be blank") String email);
+
+    Optional<Object> findByEmail(@NotBlank(message = "Email is required") String email);
 }

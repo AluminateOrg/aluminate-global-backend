@@ -3,6 +3,8 @@ package com.aluminate.aluminate_global_backend.controller;
 
 import com.aluminate.aluminate_global_backend.config.ResponseWrapper;
 import com.aluminate.aluminate_global_backend.dto.getInfo.InfoResponse;
+import com.aluminate.aluminate_global_backend.dto.getInfo.LogInfoResponse;
+import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.service.auth.AuthService;
 import com.aluminate.aluminate_global_backend.service.csrf.CsrfTokenService;
@@ -34,11 +36,7 @@ public class AuthController {
 
 
     @PostMapping("/register")
-    public ResponseEntity<ResponseWrapper<String>> register(
-            @Valid @RequestBody RegistrationRequest request,
-            HttpServletResponse httpResponse
-
-    ) {
+    public ResponseEntity<ResponseWrapper<String>> register(@Valid @RequestBody RegistrationRequest request, HttpServletResponse httpResponse) {
         try{
             logger.info("Reached Auth Controller!");
             String token = authService.register(request);
@@ -87,6 +85,87 @@ public class AuthController {
 
 
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ResponseWrapper<String>> logout(HttpServletResponse response) {
+        // Clear cookies by setting maxAge to 0
+        ResponseCookie jwtCookie = ResponseCookie.from("jwt", "")
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        ResponseCookie csrfCookie = ResponseCookie.from("csrf-token", "")
+                .httpOnly(false)
+                .secure(false)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        ResponseCookie sessionCookie = ResponseCookie.from("sessionId", "")
+                .httpOnly(false)
+                .secure(false)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        response.addHeader("Set-Cookie", jwtCookie.toString());
+        response.addHeader("Set-Cookie", csrfCookie.toString());
+        response.addHeader("Set-Cookie", sessionCookie.toString());
+
+        return ResponseEntity.ok(new ResponseWrapper<>(true, "Logout successful", null));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<ResponseWrapper<InfoResponse>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse httpResponse) {
+        try {
+            logger.info("Reached Auth Controller!");
+            LogInfoResponse logInfoResponse = authService.login(loginRequest);
+            String token = logInfoResponse.getToken();
+
+            String sessionId = UUID.randomUUID().toString();
+
+            String csrfToken = csrfTokenService.generateAndStoreToken(sessionId);
+
+            // Set JWT as HTTP-only cookie
+            ResponseCookie cookie = ResponseCookie.from("jwt", token)
+                    .httpOnly(true)
+                    .secure(false) // set to false in dev if needed
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(Duration.ofDays(1))
+                    .build();
+            ResponseCookie csrfCookie = ResponseCookie.from("csrf-token", csrfToken)
+                    .httpOnly(false)
+                    .secure(false)
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(Duration.ofDays(1))
+                    .build();
+            ResponseCookie sessionCookie = ResponseCookie.from("sessionId", sessionId)
+                    .httpOnly(false)
+                    .secure(false)
+                    .sameSite("Strict")
+                    .path("/")
+                    .maxAge(Duration.ofDays(1))
+                    .build();
+
+            httpResponse.addHeader("Set-Cookie", cookie.toString());
+            httpResponse.addHeader("Set-Cookie", csrfCookie.toString());
+            httpResponse.addHeader("Set-Cookie", sessionCookie.toString());
+            logger.info("user logged in!");
+            // You can return null or some data
+            ResponseWrapper<InfoResponse> body = new ResponseWrapper<>(true, "Login successful", null);
+            return ResponseEntity.ok(body);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
 
 

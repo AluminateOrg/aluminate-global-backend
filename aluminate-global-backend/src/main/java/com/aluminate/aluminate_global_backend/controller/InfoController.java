@@ -32,7 +32,7 @@ public class InfoController {
                 "User retrieval successful",
                 infoResponse
         );
-        logger.info("user retrieved! sending...");
+
         return ResponseEntity.ok(body);
     }
 }

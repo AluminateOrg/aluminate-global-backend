@@ -5,7 +5,9 @@ import com.aluminate.aluminate_global_backend.config.exception.DuplicateOrganiza
 import com.aluminate.aluminate_global_backend.config.util.Jwt;
 import com.aluminate.aluminate_global_backend.dto.getInfo.AdminDTO;
 import com.aluminate.aluminate_global_backend.dto.getInfo.InfoResponse;
+import com.aluminate.aluminate_global_backend.dto.getInfo.LogInfoResponse;
 import com.aluminate.aluminate_global_backend.dto.getInfo.OrganizationDTO;
+import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.model.Admin;
 import com.aluminate.aluminate_global_backend.model.Organization;
@@ -14,6 +16,7 @@ import com.aluminate.aluminate_global_backend.repository.AdminRepository;
 import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -78,6 +81,63 @@ public class AuthService {
         return jwt.generateToken(claims, admin);
     }
 
+    public LogInfoResponse login(LoginRequest loginRequest) {
+        try{
+            Admin admin = (Admin) adminRepository.findByEmail(loginRequest.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Admin not found with email: " + loginRequest.getEmail()));
 
+            // Check if the password matches
+            if (!passwordEncoder.matches(loginRequest.getPassword(), admin.getPassword())) {
+                throw new RuntimeException("Invalid password");
+            }
+            // Find the organization associated with the admin
+            Organization org = admin.getOrganization();
+            if (org == null) {
+                throw new RuntimeException("Admin does not belong to any organization");
+
+            }
+
+            // Set the admin in the security context
+            SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
+                    admin, null, admin.getAuthorities()));
+
+            //set AdminDTO and OrganizationDTO
+            AdminDTO adminDTO = new AdminDTO(
+                    admin.getId(),
+                    admin.getName(),
+                    admin.getEmail(),
+                    admin.getPhone(),
+                    admin.isEmailVerified()
+            );
+            logger.info("created AdminDTO");
+
+            OrganizationDTO orgDTO = new OrganizationDTO(
+                    org.getId(),
+                    org.getOrganizationName(),
+                    org.getSubscriptionPlan(),
+                    org.getCreatedAt(),
+                    org.getNextRenewalDate(),
+                    org.getSubdomain(),
+                    org.getPortalUrl(),
+                    org.getMaxMemberCount(),
+                    org.getCurrentMemberCount(),
+                    org.getStatus()
+            );
+
+
+
+            // Create JWT claims
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("adminId", admin.getId());
+            claims.put("organizationId", admin.getOrganization().getId());
+            claims.put("isPackageActive", admin.getOrganization().getStatus() == Status.ACTIVE);
+
+            return new LogInfoResponse(adminDTO,orgDTO, jwt.generateToken(claims, admin));
+        }catch (Exception e){
+            throw new RuntimeException(e.getMessage());
+        }
+        // Find the admin by email
+
+    }
 
 }
