@@ -20,6 +20,7 @@ public class CorsGlobalConfig {
      */
     @Bean
     public CorsFilter corsFilter() {
+        System.out.println("Accessing CorsFilter");
         CorsConfiguration config = new CorsConfiguration();
 
         // Specifies the allowed origins for cross-origin requests
@@ -31,7 +32,15 @@ public class CorsGlobalConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
         // Specifies the allowed headers for cross-origin requests
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of(
+                "Authorization",
+                "Content-Type",
+                "X-CSRF-TOKEN",
+                "X-Requested-With",
+                "Accept",
+                "X-Session-Id"
+        ));
+        config.setExposedHeaders(List.of("Set-Cookie", "X-CSRF-TOKEN"));
 
         // Allows credentials (e.g., cookies) to be included in cross-origin requests
         config.setAllowCredentials(true);
@@ -40,6 +49,7 @@ public class CorsGlobalConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
 
+        System.out.println("CORS filter initialized with allowed origins: " + config.getAllowedOrigins());
         return new CorsFilter(source);
     }
 }

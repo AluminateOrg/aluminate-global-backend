@@ -1,12 +1,20 @@
 package com.aluminate.aluminate_global_backend.service.auth;
 
+import com.aluminate.aluminate_global_backend.config.exception.DuplicateEmailException;
+import com.aluminate.aluminate_global_backend.config.exception.DuplicateOrganizationException;
 import com.aluminate.aluminate_global_backend.config.util.Jwt;
+import com.aluminate.aluminate_global_backend.dto.getInfo.AdminDTO;
+import com.aluminate.aluminate_global_backend.dto.getInfo.InfoResponse;
+import com.aluminate.aluminate_global_backend.dto.getInfo.OrganizationDTO;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.model.Admin;
 import com.aluminate.aluminate_global_backend.model.Organization;
 import com.aluminate.aluminate_global_backend.model.Status;
 import com.aluminate.aluminate_global_backend.repository.AdminRepository;
 import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +28,7 @@ public class AuthService {
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     private final Jwt jwt;
+    private final Logger logger =  LoggerFactory.getLogger(AuthService.class);
 
     public AuthService(
             OrganizationRepository organizationRepository,
@@ -36,10 +45,10 @@ public class AuthService {
     public String register(RegistrationRequest request) {
         //check if admin or organization already exists
         if (adminRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Admin with this email already exists");
+            throw new DuplicateEmailException("Admin with this email already exists");
         }
         if (organizationRepository.existsByOrganizationName(request.getOrganizationName())) {
-            throw new RuntimeException("Organization with this name already exists");
+            throw new DuplicateOrganizationException("Organization with this name already exists");
         }
         // Create Admin and Organization entities
         Admin admin = Admin.builder()
@@ -68,5 +77,7 @@ public class AuthService {
 
         return jwt.generateToken(claims, admin);
     }
+
+
 
 }
