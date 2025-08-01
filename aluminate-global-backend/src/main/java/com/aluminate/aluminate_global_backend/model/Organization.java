@@ -21,7 +21,7 @@ public class Organization {
     @Column(nullable = false)
     private String organizationName;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String subscriptionPlan;
 
     @Builder.Default
@@ -40,7 +40,13 @@ public class Organization {
     private boolean isDeleted = false;
 
     @OneToOne
-    @JoinColumn(name = "admin_id", nullable = false)
+    @JoinColumn(
+            name = "admin_id",
+            foreignKey = @ForeignKey(
+                    name = "fk_admin",
+                    foreignKeyDefinition = "FOREIGN KEY (admin_id) REFERENCES admin(id) ON DELETE CASCADE"
+            )
+    )
     private Admin admin;
 }
 

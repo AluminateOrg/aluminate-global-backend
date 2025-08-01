@@ -1,0 +1,72 @@
+package com.aluminate.aluminate_global_backend.service.payment;
+
+import com.aluminate.aluminate_global_backend.dto.payment.HashResponse;
+import com.aluminate.aluminate_global_backend.model.Admin;
+import com.aluminate.aluminate_global_backend.model.Organization;
+import com.aluminate.aluminate_global_backend.model.Transaction;
+import com.aluminate.aluminate_global_backend.model.TransactionStatus;
+import com.aluminate.aluminate_global_backend.repository.TransactionRepository;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
+
+@Service
+public class HashService {
+
+    @Value("${payhere.merchant_id}")
+    private String merchantId;
+
+    @Value("${payhere.merchant_secret}")
+    private String merchantSecret;
+
+    private final TransactionRepository transactionRepository;
+
+    public HashService(TransactionRepository transactionRepository) {
+        this.transactionRepository = transactionRepository;
+    }
+
+    public HashResponse generateHash(double amount, String currency, Organization organization, Admin admin) {
+        DecimalFormat df = new DecimalFormat("0.00");
+        String formattedAmount = df.format(amount);
+
+        // Build the hash
+        String localHash = md5(merchantSecret);
+        String raw = merchantId + formattedAmount + localHash;
+        String hash = md5(raw);
+
+        // Save transaction record (status is PENDING for now)
+        Transaction transaction = Transaction.builder()
+                .amount(BigDecimal.valueOf(amount))
+                .currency(currency)
+                .transactionStatus(TransactionStatus.PENDING)
+                .organization(organization)
+                .admin(admin)
+                .build();
+
+        Transaction saved = transactionRepository.save(transaction);
+
+        // Return hash and transaction ID (order_id)
+        return new HashResponse(hash, saved.getId());
+    }
+
+    private String md5(String input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] messageDigest = md.digest(input.getBytes());
+            BigInteger no = new BigInteger(1, messageDigest);
+            String hashtext = no.toString(16);
+            while (hashtext.length() < 32) {
+                hashtext = "0" + hashtext;
+            }
+            return hashtext;
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
