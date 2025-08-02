@@ -36,10 +36,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Value("${api.prefix}")
     private String apiPrefix;
 
-
-
-
-
     public JwtAuthenticationFilter(Jwt jwtUtil,
                                    AdminRepository adminRepository,
                                    OrganizationRepository organizationRepository,
@@ -60,7 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
-        logger.info("JwtAuthenticationFilter initialized");
+        logger.info("JwtAuthenticationFilter called for path: " + path);
 
 
         if (!path.startsWith(apiPrefix + "/admin/")) {
@@ -73,10 +69,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         // Validate CSRF token for state-changing methods (POST, PUT, DELETE, PATCH)
         if (requiresCsrfValidation(request)) {
-            String csrfTokenFromHeader = request.getHeader("X-CSRF-TOKEN");
+            String csrfTokenFromHeader = request.getHeader("X-Csrf-Token");
+
             String sessionId = extractSessionIdFromRequest(request); // You decide how to get sessionId, maybe cookie or header
 
             if (csrfTokenFromHeader == null || sessionId == null || !csrfTokenService.validateToken(sessionId, csrfTokenFromHeader)) {
+                logger.error("Invalid csrf token or session id invalid");
                 forbidden(response, "Invalid or missing CSRF token");
                 return;
             }
@@ -118,6 +116,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 
 
+
             boolean requireActivePackage = requiresActivePackage(request.getRequestURI());
 
             if (requireActivePackage && (isPackageActive == null || !isPackageActive)) {
@@ -133,13 +132,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
                 filterChain.doFilter(request, response);
+                logger.info("Successfully passed JWT authentication for admin: " + admin.getEmail());
 
             }catch (Exception e){
+                logger.error(e.getMessage());
                 throw new RuntimeException(e.getMessage());
             }
 
 
         } catch (Exception e) {
+            logger.error(e.getMessage());
             unauthorized(response, "Invalid or expired JWT token");
         }
     }
@@ -178,16 +180,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String extractSessionIdFromRequest(HttpServletRequest request) {
-        // Example: get it from a cookie or a header where you saved it when generating CSRF token
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("sessionId".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-        // or from header:
-        // return request.getHeader("X-Session-Id");
-        return null;
+
+        //  from header:
+         return request.getHeader("X-Session-Id");
+
     }
 }

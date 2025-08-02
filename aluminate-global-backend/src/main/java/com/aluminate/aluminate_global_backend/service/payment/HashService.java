@@ -7,6 +7,8 @@ import com.aluminate.aluminate_global_backend.model.Transaction;
 import com.aluminate.aluminate_global_backend.model.TransactionStatus;
 import com.aluminate.aluminate_global_backend.repository.TransactionRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -26,21 +28,22 @@ public class HashService {
     private String merchantSecret;
 
     private final TransactionRepository transactionRepository;
+    private final Logger logger = LoggerFactory.getLogger(HashService.class);
 
     public HashService(TransactionRepository transactionRepository) {
         this.transactionRepository = transactionRepository;
     }
 
     public HashResponse generateHash(double amount, String currency, Organization organization, Admin admin) {
+        logger.info("Generating hash...");
+
         DecimalFormat df = new DecimalFormat("0.00");
-        String formattedAmount = df.format(amount);
+        String formattedAmount = df.format(amount); // must be like "1000.00"
 
-        // Build the hash
-        String localHash = md5(merchantSecret);
-        String raw = merchantId + formattedAmount + localHash;
-        String hash = md5(raw);
+        String localHash = md5(merchantSecret).toUpperCase(); // CRITICAL
+        logger.info("Local hash (MD5(secret).toUpperCase()): {}", localHash);
 
-        // Save transaction record (status is PENDING for now)
+        // Save transaction first
         Transaction transaction = Transaction.builder()
                 .amount(BigDecimal.valueOf(amount))
                 .currency(currency)
@@ -48,11 +51,18 @@ public class HashService {
                 .organization(organization)
                 .admin(admin)
                 .build();
-
         Transaction saved = transactionRepository.save(transaction);
 
-        // Return hash and transaction ID (order_id)
-        return new HashResponse(hash, saved.getId());
+        String orderId = saved.getId().toString(); // Must use this exact ID in frontend
+        logger.info("Order ID: {}", orderId);
+
+        String raw = (merchantId + orderId + formattedAmount + currency + localHash).toUpperCase();
+        String hash = md5(raw).toLowerCase();
+
+        logger.info("Hash raw string: {}", raw);
+        logger.info("Generated hash: {}", hash);
+
+        return new HashResponse(hash, saved.getId()); // include order ID
     }
 
     private String md5(String input) {
@@ -69,4 +79,5 @@ public class HashService {
             throw new RuntimeException(e);
         }
     }
+
 }

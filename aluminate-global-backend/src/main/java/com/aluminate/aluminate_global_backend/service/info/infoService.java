@@ -24,7 +24,7 @@ public class infoService {
     }
 
     public InfoResponse getUser(){
-        logger.info("Getting user in service");
+
         try{
             Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             if (!(principal instanceof Admin admin)) {

@@ -3,8 +3,11 @@ package com.aluminate.aluminate_global_backend.config;
 
 import com.aluminate.aluminate_global_backend.config.exception.DuplicateEmailException;
 import com.aluminate.aluminate_global_backend.config.exception.DuplicateOrganizationException;
+import com.aluminate.aluminate_global_backend.config.exception.InvalidEmailException;
+import com.aluminate.aluminate_global_backend.config.exception.InvalidPasswordException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -30,11 +33,34 @@ public class GlobalExceptionHandler {
                 .body(new ResponseWrapper<>(false, ex.getMessage(), null));
     }
 
+    @ExceptionHandler(InvalidPasswordException.class)
+    public ResponseEntity<ResponseWrapper<Void>> handleInvalidPassword(InvalidPasswordException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ResponseWrapper<>(false, ex.getMessage(), null));
+    }
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<?> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        return ResponseEntity
+                .badRequest()
+                .body(new ResponseWrapper<>(false, "Invalid request format: " + ex.getLocalizedMessage(), null));
+    }
+
+
+    @ExceptionHandler(InvalidEmailException.class)
+    public ResponseEntity<ResponseWrapper<Void>> handleInvalidEmail(InvalidEmailException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(new ResponseWrapper<>(false, ex.getMessage(), null));
+    }
+
     // Keep generic handler as fallback
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ResponseWrapper<Void>> handleRuntimeException(RuntimeException ex) {
+        String message = ex.getMessage();
+        if (message != null && message.contains(":")) {
+            message = message.substring(message.indexOf(":") + 1).trim();
+        }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ResponseWrapper<>(false, ex.getMessage(), null));
+                .body(new ResponseWrapper<>(false, message, null));
     }
 
     // Handle validation errors (@Valid)
@@ -48,6 +74,14 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(
                 new ResponseWrapper<>(false, errorMessages, null),
+                HttpStatus.BAD_REQUEST
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ResponseWrapper<Void>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return new ResponseEntity<>(
+                new ResponseWrapper<>(false, ex.getMessage(), null),
                 HttpStatus.BAD_REQUEST
         );
     }
