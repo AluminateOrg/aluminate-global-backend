@@ -35,13 +35,13 @@ public class HashService {
     }
 
     public HashResponse generateHash(double amount, String currency, Organization organization, Admin admin) {
-        logger.info("Generating hash...");
+
 
         DecimalFormat df = new DecimalFormat("0.00");
         String formattedAmount = df.format(amount); // must be like "1000.00"
 
         String localHash = md5(merchantSecret).toUpperCase(); // CRITICAL
-        logger.info("Local hash (MD5(secret).toUpperCase()): {}", localHash);
+
 
         // Save transaction first
         Transaction transaction = Transaction.builder()
@@ -54,13 +54,12 @@ public class HashService {
         Transaction saved = transactionRepository.save(transaction);
 
         String orderId = saved.getId().toString(); // Must use this exact ID in frontend
-        logger.info("Order ID: {}", orderId);
+        logger.info("Order ID: " + orderId);
 
         String raw = (merchantId + orderId + formattedAmount + currency + localHash).toUpperCase();
-        String hash = md5(raw).toLowerCase();
+        String hash = md5(raw).toUpperCase();
 
-        logger.info("Hash raw string: {}", raw);
-        logger.info("Generated hash: {}", hash);
+
 
         return new HashResponse(hash, saved.getId()); // include order ID
     }

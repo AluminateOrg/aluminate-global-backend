@@ -32,7 +32,6 @@ public class infoService {
                 throw new IllegalStateException("Authenticated principal is not an Admin");
             }
 
-            Organization organization = admin.getOrganization(); // assuming Admin has `getOrganization()`
 
             Organization org = admin.getOrganization();
 
@@ -44,11 +43,12 @@ public class infoService {
                     admin.isEmailVerified()
             );
 
+            String subscriptionPlan = org.getSubscriptionPlan() != null ? org.getSubscriptionPlan().getName() : "No Plan";
 
             OrganizationDTO orgDTO = new OrganizationDTO(
                     org.getId(),
                     org.getOrganizationName(),
-                    org.getSubscriptionPlan(),
+                    subscriptionPlan,
                     org.getCreatedAt(),
                     org.getNextRenewalDate(),
                     org.getSubdomain(),

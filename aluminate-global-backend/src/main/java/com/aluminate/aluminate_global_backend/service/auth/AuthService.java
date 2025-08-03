@@ -114,10 +114,12 @@ public class AuthService {
             );
             logger.info("created AdminDTO");
 
+            String subscriptionPlan = org.getSubscriptionPlan() != null ? org.getSubscriptionPlan().getName() : "No Plan";
+
             OrganizationDTO orgDTO = new OrganizationDTO(
                     org.getId(),
                     org.getOrganizationName(),
-                    org.getSubscriptionPlan(),
+                    subscriptionPlan,
                     org.getCreatedAt(),
                     org.getNextRenewalDate(),
                     org.getSubdomain(),
@@ -126,6 +128,7 @@ public class AuthService {
                     org.getCurrentMemberCount(),
                     org.getStatus()
             );
+            logger.info("created OrganizationDTO");
 
 
 
