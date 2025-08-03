@@ -27,11 +27,9 @@ public class CsrfTokenService {
         secureRandom.nextBytes(bytes);
         String csrfToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
         try{
-
-
-
             String redisKey = "csrf:" + sessionId;
             redisTemplate.opsForValue().set(redisKey, csrfToken, Duration.ofDays(1)); // TTL for CSRF
+            logger.info("CSRF token generated and stored for session: " + sessionId);
 
         }catch(Exception e){
 
@@ -46,6 +44,17 @@ public class CsrfTokenService {
         String redisKey = "csrf:" + sessionId;
 
         String storedToken = redisTemplate.opsForValue().get(redisKey);
-        return storedToken != null && storedToken.equals(tokenFromClient);
+
+        boolean isValid = storedToken != null && storedToken.equals(tokenFromClient);
+
+        if (!isValid) {
+            logger.error("CSRF TOKEN MISMATCH:\n" +
+                            "Session: {}\n" +
+                            "Header Token: {}\n" +
+                            "Redis Token: {}",
+                    sessionId, tokenFromClient, storedToken);
+        }
+
+        return isValid;
     }
 }

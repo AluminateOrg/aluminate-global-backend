@@ -21,8 +21,15 @@ public class Organization {
     @Column(nullable = false)
     private String organizationName;
 
-    @Column(nullable = true)
-    private String subscriptionPlan;
+    @ManyToOne
+    @JoinColumn(
+            name = "subscription_plan_id",
+            foreignKey = @ForeignKey(
+                    name = "fk_subscription_plan",
+                    foreignKeyDefinition = "FOREIGN KEY (subscription_plan_id) REFERENCES subscription_plan(id) ON UPDATE CASCADE ON DELETE CASCADE"
+            )
+    )
+    private SubscriptionPlan subscriptionPlan;
 
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -44,9 +51,11 @@ public class Organization {
             name = "admin_id",
             foreignKey = @ForeignKey(
                     name = "fk_admin",
-                    foreignKeyDefinition = "FOREIGN KEY (admin_id) REFERENCES admin(id) ON DELETE CASCADE"
+                    foreignKeyDefinition = "FOREIGN KEY (admin_id) REFERENCES admin(id) ON UPDATE CASCADE ON DELETE CASCADE"
             )
     )
     private Admin admin;
+
+
 }
 
