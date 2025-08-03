@@ -25,7 +25,7 @@ public class InfoController {
 
     @GetMapping("/getUser")
     public ResponseEntity<ResponseWrapper<InfoResponse>> getUser() {
-        logger.info("Getting user...");
+
         InfoResponse infoResponse = infoService.getUser();
         ResponseWrapper<InfoResponse> body = new ResponseWrapper<>(
                 true,

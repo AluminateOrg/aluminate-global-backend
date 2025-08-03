@@ -35,18 +35,36 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     private TransactionStatus transactionStatus;
 
-    private String custom1; // Optional — can be used to store portal info, referral, etc.
-    private String custom2;
+    private String subscription_plan;
+
+
 
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
     // Who made the transaction
     @ManyToOne
-    @JoinColumn(name = "organization_id", nullable = false)
+    @JoinColumn(
+            name = "organization_id",
+            nullable = false,
+            foreignKey = @ForeignKey(
+                    name = "fk_transaction_organization",
+                    foreignKeyDefinition = "FOREIGN KEY (organization_id) REFERENCES organization(id) ON UPDATE CASCADE ON DELETE CASCADE"
+            )
+    )
     private Organization organization;
 
     @ManyToOne
-    @JoinColumn(name = "admin_id")
+    @JoinColumn(
+            name = "admin_id",
+            foreignKey = @ForeignKey(
+                    name = "fk_transaction_admin",
+                    foreignKeyDefinition = "FOREIGN KEY (admin_id) REFERENCES admin(id) ON UPDATE CASCADE ON DELETE SET NULL"
+            )
+    )
     private Admin admin;
+
+    public boolean isPresent() {
+        return this.id != null;
+    }
 }

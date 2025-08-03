@@ -121,7 +121,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseWrapper<InfoResponse>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse httpResponse) {
+    public ResponseEntity<ResponseWrapper<String>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse httpResponse) {
         try {
             logger.info("Reached Auth Controller!");
             LogInfoResponse logInfoResponse = authService.login(loginRequest);
@@ -159,7 +159,7 @@ public class AuthController {
             httpResponse.addHeader("Set-Cookie", sessionCookie.toString());
             logger.info("user logged in!");
             // You can return null or some data
-            ResponseWrapper<InfoResponse> body = new ResponseWrapper<>(true, "Login successful", null);
+            ResponseWrapper<String> body = new ResponseWrapper<>(true, "Login successful", null);
             return ResponseEntity.ok(body);
         } catch (Exception e) {
             throw new RuntimeException(e);

@@ -2,6 +2,8 @@ package com.aluminate.aluminate_global_backend.service.auth;
 
 import com.aluminate.aluminate_global_backend.config.exception.DuplicateEmailException;
 import com.aluminate.aluminate_global_backend.config.exception.DuplicateOrganizationException;
+import com.aluminate.aluminate_global_backend.config.exception.InvalidEmailException;
+import com.aluminate.aluminate_global_backend.config.exception.InvalidPasswordException;
 import com.aluminate.aluminate_global_backend.config.util.Jwt;
 import com.aluminate.aluminate_global_backend.dto.getInfo.AdminDTO;
 import com.aluminate.aluminate_global_backend.dto.getInfo.InfoResponse;
@@ -66,7 +68,7 @@ public class AuthService {
 
         Organization org = Organization.builder()
                 .organizationName(request.getOrganizationName())
-                .status(Status.ACTIVE)
+                .status(Status.INACTIVE)
                 .admin(admin)
                 .build();
 
@@ -84,11 +86,12 @@ public class AuthService {
     public LogInfoResponse login(LoginRequest loginRequest) {
         try{
             Admin admin = (Admin) adminRepository.findByEmail(loginRequest.getEmail())
-                    .orElseThrow(() -> new RuntimeException("Admin not found with email: " + loginRequest.getEmail()));
+                    .orElseThrow(() -> new InvalidEmailException("Admin not found with email: " + loginRequest.getEmail()));
 
             // Check if the password matches
             if (!passwordEncoder.matches(loginRequest.getPassword(), admin.getPassword())) {
-                throw new RuntimeException("Invalid password");
+
+                throw new InvalidPasswordException("Invalid password");
             }
             // Find the organization associated with the admin
             Organization org = admin.getOrganization();
@@ -111,10 +114,12 @@ public class AuthService {
             );
             logger.info("created AdminDTO");
 
+            String subscriptionPlan = org.getSubscriptionPlan() != null ? org.getSubscriptionPlan().getName() : "No Plan";
+
             OrganizationDTO orgDTO = new OrganizationDTO(
                     org.getId(),
                     org.getOrganizationName(),
-                    org.getSubscriptionPlan(),
+                    subscriptionPlan,
                     org.getCreatedAt(),
                     org.getNextRenewalDate(),
                     org.getSubdomain(),
@@ -123,6 +128,7 @@ public class AuthService {
                     org.getCurrentMemberCount(),
                     org.getStatus()
             );
+            logger.info("created OrganizationDTO");
 
 
 
