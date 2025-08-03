@@ -20,7 +20,7 @@ public class CorsGlobalConfig {
      */
     @Bean
     public CorsFilter corsFilter() {
-        System.out.println("Accessing CorsFilter");
+
         CorsConfiguration config = new CorsConfiguration();
 
         // Specifies the allowed origins for cross-origin requests
