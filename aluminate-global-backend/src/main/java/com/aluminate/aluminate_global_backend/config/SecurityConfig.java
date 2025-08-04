@@ -37,7 +37,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(apiPrefix + "/auth/**", apiPrefix + "/public/**").permitAll()
-                        .requestMatchers(apiPrefix + "/admin/**").authenticated()
+                        .requestMatchers(apiPrefix + "/admin/**").hasRole("ADMIN")
+                        .requestMatchers(apiPrefix + "/superAdmin/**").hasRole("SUPER_ADMIN")
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

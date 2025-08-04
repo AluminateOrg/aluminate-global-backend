@@ -1,17 +1,17 @@
 package com.aluminate.aluminate_global_backend.dto.getInfo;
 
-
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
-public class LogInfoResponse {
-    private UserDTO admin;
-    private OrganizationDTO organization;
-    private String token;
+public class SuperAdminDTO implements UserDTO{
+    private long id;
+    private String name;
+    private String email;
+
 }

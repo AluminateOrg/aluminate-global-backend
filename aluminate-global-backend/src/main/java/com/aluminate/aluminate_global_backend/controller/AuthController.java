@@ -2,6 +2,7 @@ package com.aluminate.aluminate_global_backend.controller;
 
 
 import com.aluminate.aluminate_global_backend.config.ResponseWrapper;
+import com.aluminate.aluminate_global_backend.config.exception.EmailNotVerifiedException;
 import com.aluminate.aluminate_global_backend.dto.getInfo.InfoResponse;
 import com.aluminate.aluminate_global_backend.dto.getInfo.LogInfoResponse;
 import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
@@ -41,38 +42,7 @@ public class AuthController {
             logger.info("Reached Auth Controller!");
             String token = authService.register(request);
 
-            String sessionId = UUID.randomUUID().toString();
-
-            String csrfToken = csrfTokenService.generateAndStoreToken(sessionId);
-
-
-
-            // Set JWT as HTTP-only cookie
-            ResponseCookie cookie = ResponseCookie.from("jwt", token)
-                    .httpOnly(true)
-                    .secure(false) // set to false in dev if needed
-                    .sameSite("Strict")
-                    .path("/")
-                    .maxAge(Duration.ofDays(1))
-                    .build();
-            ResponseCookie csrfCookie = ResponseCookie.from("csrf-token", csrfToken)
-                    .httpOnly(false) // Client-side JS must read this
-                    .secure(false)
-                    .sameSite("Strict")
-                    .path("/")
-                    .maxAge(Duration.ofDays(1))
-                    .build();
-            ResponseCookie sessionCookie = ResponseCookie.from("sessionId", sessionId)
-                    .httpOnly(false)
-                    .secure(false)
-                    .sameSite("Strict")
-                    .path("/")
-                    .maxAge(Duration.ofDays(1))
-                    .build();
-
-            httpResponse.addHeader("Set-Cookie", cookie.toString());
-            httpResponse.addHeader("Set-Cookie", csrfCookie.toString());
-            httpResponse.addHeader("Set-Cookie", sessionCookie.toString());
+            authService.setAuthCookies(httpResponse, token);
             logger.info("user registered!");
             // You can return null or some data
             ResponseWrapper<String> body = new ResponseWrapper<>(true, "Registration successful", null);
@@ -127,36 +97,7 @@ public class AuthController {
             LogInfoResponse logInfoResponse = authService.login(loginRequest);
             String token = logInfoResponse.getToken();
 
-            String sessionId = UUID.randomUUID().toString();
-
-            String csrfToken = csrfTokenService.generateAndStoreToken(sessionId);
-
-            // Set JWT as HTTP-only cookie
-            ResponseCookie cookie = ResponseCookie.from("jwt", token)
-                    .httpOnly(true)
-                    .secure(false) // set to false in dev if needed
-                    .sameSite("Strict")
-                    .path("/")
-                    .maxAge(Duration.ofDays(1))
-                    .build();
-            ResponseCookie csrfCookie = ResponseCookie.from("csrf-token", csrfToken)
-                    .httpOnly(false)
-                    .secure(false)
-                    .sameSite("Strict")
-                    .path("/")
-                    .maxAge(Duration.ofDays(1))
-                    .build();
-            ResponseCookie sessionCookie = ResponseCookie.from("sessionId", sessionId)
-                    .httpOnly(false)
-                    .secure(false)
-                    .sameSite("Strict")
-                    .path("/")
-                    .maxAge(Duration.ofDays(1))
-                    .build();
-
-            httpResponse.addHeader("Set-Cookie", cookie.toString());
-            httpResponse.addHeader("Set-Cookie", csrfCookie.toString());
-            httpResponse.addHeader("Set-Cookie", sessionCookie.toString());
+            authService.setAuthCookies(httpResponse, token);
             logger.info("user logged in!");
             // You can return null or some data
             ResponseWrapper<String> body = new ResponseWrapper<>(true, "Login successful", null);
