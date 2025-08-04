@@ -156,7 +156,6 @@ public class AuthService {
 
             String subscriptionPlan = org.getSubscriptionPlan() != null ? org.getSubscriptionPlan().getName() : "No Plan";
 
-            String subscriptionPlan = org.getSubscriptionPlan() != null ? org.getSubscriptionPlan().getName() : "No Plan";
 
             OrganizationDTO orgDTO = new OrganizationDTO(
                     org.getId(),
