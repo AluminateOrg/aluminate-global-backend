@@ -1,30 +1,30 @@
 package com.aluminate.aluminate_global_backend.service.auth;
 
-import com.aluminate.aluminate_global_backend.config.exception.DuplicateEmailException;
-import com.aluminate.aluminate_global_backend.config.exception.DuplicateOrganizationException;
-import com.aluminate.aluminate_global_backend.config.exception.InvalidEmailException;
-import com.aluminate.aluminate_global_backend.config.exception.InvalidPasswordException;
+import com.aluminate.aluminate_global_backend.config.exception.*;
 import com.aluminate.aluminate_global_backend.config.util.Jwt;
-import com.aluminate.aluminate_global_backend.dto.getInfo.AdminDTO;
-import com.aluminate.aluminate_global_backend.dto.getInfo.InfoResponse;
-import com.aluminate.aluminate_global_backend.dto.getInfo.LogInfoResponse;
-import com.aluminate.aluminate_global_backend.dto.getInfo.OrganizationDTO;
+import com.aluminate.aluminate_global_backend.dto.getInfo.*;
 import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
-import com.aluminate.aluminate_global_backend.model.Admin;
-import com.aluminate.aluminate_global_backend.model.Organization;
-import com.aluminate.aluminate_global_backend.model.Status;
+import com.aluminate.aluminate_global_backend.model.*;
 import com.aluminate.aluminate_global_backend.repository.AdminRepository;
 import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
+import com.aluminate.aluminate_global_backend.service.CustomUserDetailsService;
+import com.aluminate.aluminate_global_backend.service.csrf.CsrfTokenService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -33,29 +33,69 @@ public class AuthService {
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     private final Jwt jwt;
-    private final Logger logger =  LoggerFactory.getLogger(AuthService.class);
+    private final CsrfTokenService csrfTokenService;
+    private final Logger logger = LoggerFactory.getLogger(AuthService.class);
+    private final CustomUserDetailsService customUserDetailsService;
 
     public AuthService(
             OrganizationRepository organizationRepository,
             AdminRepository adminRepository,
             PasswordEncoder passwordEncoder,
-            Jwt jwt
+            Jwt jwt,
+            CsrfTokenService csrfTokenService,
+            CustomUserDetailsService customUserDetailsService
     ) {
         this.organizationRepository = organizationRepository;
         this.adminRepository = adminRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwt = jwt;
+        this.csrfTokenService = csrfTokenService;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
+    public void setAuthCookies(HttpServletResponse httpResponse, String token) {
+        String sessionId = UUID.randomUUID().toString();
+        String csrfToken = csrfTokenService.generateAndStoreToken(sessionId);
+
+        ResponseCookie jwtCookie = ResponseCookie.from("jwt", token)
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(Duration.ofDays(1))
+                .build();
+
+        ResponseCookie csrfCookie = ResponseCookie.from("csrf-token", csrfToken)
+                .httpOnly(false)
+                .secure(false)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(Duration.ofDays(1))
+                .build();
+
+        ResponseCookie sessionCookie = ResponseCookie.from("sessionId", sessionId)
+                .httpOnly(false)
+                .secure(false)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(Duration.ofDays(1))
+                .build();
+
+        httpResponse.addHeader("Set-Cookie", jwtCookie.toString());
+        httpResponse.addHeader("Set-Cookie", csrfCookie.toString());
+        httpResponse.addHeader("Set-Cookie", sessionCookie.toString());
+    }
+
+    @Transactional
     public String register(RegistrationRequest request) {
-        //check if admin or organization already exists
         if (adminRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateEmailException("Admin with this email already exists");
         }
+
         if (organizationRepository.existsByOrganizationName(request.getOrganizationName())) {
             throw new DuplicateOrganizationException("Organization with this name already exists");
         }
-        // Create Admin and Organization entities
+
         Admin admin = Admin.builder()
                 .name(request.getAdminFullName())
                 .email(request.getEmail())
@@ -74,37 +114,38 @@ public class AuthService {
 
         organizationRepository.save(org);
 
-        // Create JWT claims
         Map<String, Object> claims = new HashMap<>();
         claims.put("adminId", admin.getId());
         claims.put("organizationId", org.getId());
-        claims.put("isPackageActive", org.getStatus() == Status.ACTIVE);
+        claims.put("isPackageActive", false);
 
         return jwt.generateToken(claims, admin);
     }
 
-    public LogInfoResponse login(LoginRequest loginRequest) {
-        try{
-            Admin admin = (Admin) adminRepository.findByEmail(loginRequest.getEmail())
-                    .orElseThrow(() -> new InvalidEmailException("Admin not found with email: " + loginRequest.getEmail()));
+    public LogInfoResponse login(LoginRequest loginRequest)  {
 
-            // Check if the password matches
+        // get the UserDetails object
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(loginRequest.getEmail());
+        if (userDetails == null) {
+            throw new InvalidEmailException("Admin not found with email: " + loginRequest.getEmail());
+        }
+        // check if the user is an instance of Admin or SuperAdmin
+        if ((userDetails instanceof Admin)) {
+            logger.info("Identified user as Admin: " + loginRequest.getEmail());
+            Admin admin = (Admin) userDetails;
             if (!passwordEncoder.matches(loginRequest.getPassword(), admin.getPassword())) {
-
                 throw new InvalidPasswordException("Invalid password");
             }
-            // Find the organization associated with the admin
+
             Organization org = admin.getOrganization();
             if (org == null) {
                 throw new RuntimeException("Admin does not belong to any organization");
-
             }
 
-            // Set the admin in the security context
-            SecurityContextHolder.getContext().setAuthentication(UsernamePasswordAuthenticationToken.authenticated(
-                    admin, null, admin.getAuthorities()));
+            SecurityContextHolder.getContext().setAuthentication(
+                    UsernamePasswordAuthenticationToken.authenticated(admin, null, admin.getAuthorities())
+            );
 
-            //set AdminDTO and OrganizationDTO
             AdminDTO adminDTO = new AdminDTO(
                     admin.getId(),
                     admin.getName(),
@@ -112,7 +153,6 @@ public class AuthService {
                     admin.getPhone(),
                     admin.isEmailVerified()
             );
-            logger.info("created AdminDTO");
 
             String subscriptionPlan = org.getSubscriptionPlan() != null ? org.getSubscriptionPlan().getName() : "No Plan";
 
@@ -128,22 +168,45 @@ public class AuthService {
                     org.getCurrentMemberCount(),
                     org.getStatus()
             );
-            logger.info("created OrganizationDTO");
 
-
-
-            // Create JWT claims
             Map<String, Object> claims = new HashMap<>();
-            claims.put("adminId", admin.getId());
-            claims.put("organizationId", admin.getOrganization().getId());
-            claims.put("isPackageActive", admin.getOrganization().getStatus() == Status.ACTIVE);
+            claims.put("adminEmail", admin.getEmail());
+            claims.put("organizationId", org.getId());
+            claims.put("isPackageActive", org.getStatus() == Status.ACTIVE);
 
-            return new LogInfoResponse(adminDTO,orgDTO, jwt.generateToken(claims, admin));
-        }catch (Exception e){
-            throw new RuntimeException(e.getMessage());
+            return new LogInfoResponse(adminDTO, orgDTO, jwt.generateToken(claims, admin));
+
         }
-        // Find the admin by email
+
+        if((userDetails instanceof SuperAdmin)) {
+            logger.info("Identified user as SuperAdmin: " + loginRequest.getEmail());
+            SuperAdmin superAdmin = (SuperAdmin) userDetails;
+            if (!passwordEncoder.matches(loginRequest.getPassword(), superAdmin.getPassword())) {
+                logger.info("invalid password for SuperAdmin: " + loginRequest.getEmail());
+                throw new InvalidPasswordException("Invalid password");
+            }
+
+            SecurityContextHolder.getContext().setAuthentication(
+                    UsernamePasswordAuthenticationToken.authenticated(superAdmin, null, superAdmin.getAuthorities())
+            );
+
+            SuperAdminDTO superAdminDTO = new SuperAdminDTO(
+                    superAdmin.getId(),
+                    superAdmin.getName(),
+                    superAdmin.getEmail()
+            );
+
+            Map<String, Object> claims = new HashMap<>();
+            claims.put("adminEmail", superAdmin.getEmail());
+            logger.info("sending claims: " + claims);
+            return new LogInfoResponse(superAdminDTO, null, jwt.generateToken(claims, superAdmin));
+
+        }
+
+        else{throw new InvalidEmailException("Admin or SuperAdmin not found with email: " + loginRequest.getEmail());}
+
+
+
 
     }
-
 }
