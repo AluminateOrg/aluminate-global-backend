@@ -29,7 +29,6 @@ public class CsrfTokenService {
         try{
             String redisKey = "csrf:" + sessionId;
             redisTemplate.opsForValue().set(redisKey, csrfToken, Duration.ofDays(1)); // TTL for CSRF
-            logger.info("CSRF token generated and stored for session: " + sessionId);
 
         }catch(Exception e){
 

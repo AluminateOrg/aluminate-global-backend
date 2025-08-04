@@ -3,8 +3,10 @@ package com.aluminate.aluminate_global_backend.config;
 import com.aluminate.aluminate_global_backend.config.util.Jwt;
 import com.aluminate.aluminate_global_backend.model.Admin;
 import com.aluminate.aluminate_global_backend.model.Organization;
+import com.aluminate.aluminate_global_backend.model.SuperAdmin;
 import com.aluminate.aluminate_global_backend.repository.AdminRepository;
 import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
+import com.aluminate.aluminate_global_backend.service.CustomUserDetailsService;
 import com.aluminate.aluminate_global_backend.service.csrf.CsrfTokenService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -15,6 +17,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.lang.NonNull;
@@ -32,6 +35,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final AdminRepository adminRepository;
     private final OrganizationRepository organizationRepository;
     private final CsrfTokenService csrfTokenService;
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Value("${api.prefix}")
     private String apiPrefix;
@@ -39,11 +43,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public JwtAuthenticationFilter(Jwt jwtUtil,
                                    AdminRepository adminRepository,
                                    OrganizationRepository organizationRepository,
-                                   CsrfTokenService csrfTokenService) {
+                                   CsrfTokenService csrfTokenService,
+                                   CustomUserDetailsService customUserDetailsService
+    ) {
         this.jwtUtil = jwtUtil;
         this.adminRepository = adminRepository;
         this.organizationRepository = organizationRepository;
         this.csrfTokenService = csrfTokenService;
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
@@ -59,7 +66,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         logger.info("JwtAuthenticationFilter called for path: " + path);
 
 
-        if (!path.startsWith(apiPrefix + "/admin/")) {
+        if (!path.startsWith(apiPrefix + "/admin/") && !path.startsWith(apiPrefix + "/superAdmin/")) {
             logger.info("Skipping JWT authentication for non-admin path: " + path);
             filterChain.doFilter(request, response);
             return;
@@ -80,7 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
 
-        // JWT validation remains as before
+        // JWT validation
         String jwt = extractJwtFromCookie(request);
 
         if (jwt == null) {
@@ -89,43 +96,46 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
+        //jwt validation handling
+
         try {
             Claims claims = jwtUtil.extractAllClaims(jwt);
 
-            Long adminId = claims.get("adminId", Long.class);
-            Long orgId = claims.get("organizationId", Long.class);
-            Boolean isPackageActive = claims.get("isPackageActive", Boolean.class);
-
-            if (adminId == null || orgId == null) {
+            String adminEmail = claims.get("adminEmail", String.class);
+            //check if adminEmail is null
+            if (adminEmail == null) {
                 unauthorized(response, "Invalid token claims");
-                logger.error("Invalid token claims");
+                logger.error("Invalid token claims: adminEmail is null");
+                return;
+            }
+            //check if admin is a super admin or admin
+            UserDetails userDetails = customUserDetailsService.loadUserByUsername(adminEmail);
+            if (userDetails == null) {
+                unauthorized(response, "Invalid admin email");
+                logger.error("Invalid token claims: userDetails is null for adminEmail: " + adminEmail);
                 return;
             }
 
-            Optional<Admin> adminOpt = adminRepository.findById(adminId);
-            Optional<Organization> orgOpt = organizationRepository.findById(orgId);
+            //check the instnace of Admin or SuperAdmin
+            if ((userDetails instanceof Admin)) {
+                Admin admin = (Admin) userDetails;
+                Organization org = admin.getOrganization();
+                if (org == null) {
+                    unauthorized(response, "Admin does not belong to any organization");
+                    logger.error("Invalid token claims: Admin does not belong to any organization for adminEmail: " + adminEmail);
+                    return;
+                }
 
-            if (adminOpt.isEmpty() || orgOpt.isEmpty()) {
-                unauthorized(response, "Invalid admin or organization");
-                logger.error("Invalid admin or organization");
-                return;
-            }
+                //check if organization has an active package
+                boolean requireActivePackage = requiresActivePackage(request.getRequestURI());
+                Boolean isPackageActive = claims.get("isPackageActive", Boolean.class);
 
-            Admin admin = adminOpt.get();
-            Organization org = orgOpt.get();
+                if (requireActivePackage && (isPackageActive == null || !isPackageActive)) {
+                    forbidden(response, "Package inactive, access denied");
+                    logger.error("Package inactive, access denied");
+                    return;
+                }
 
-
-
-
-            boolean requireActivePackage = requiresActivePackage(request.getRequestURI());
-
-            if (requireActivePackage && (isPackageActive == null || !isPackageActive)) {
-                forbidden(response, "Package inactive, access denied");
-                logger.error("Package inactive, access denied");
-                return;
-            }
-
-            try{
                 UsernamePasswordAuthenticationToken auth =
                         new UsernamePasswordAuthenticationToken(admin, null, admin.getAuthorities());
 
@@ -134,11 +144,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 filterChain.doFilter(request, response);
                 logger.info("Successfully passed JWT authentication for admin: " + admin.getEmail());
 
-            }catch (Exception e){
-                logger.error(e.getMessage());
-                throw new RuntimeException(e.getMessage());
             }
 
+            else if ((userDetails instanceof SuperAdmin)) {
+                SuperAdmin superAdmin = (SuperAdmin) userDetails;
+
+                // SuperAdmins do not require active package check
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(superAdmin, null, superAdmin.getAuthorities());
+
+                SecurityContextHolder.getContext().setAuthentication(auth);
+
+                filterChain.doFilter(request, response);
+                logger.info("Successfully passed JWT authentication for super admin: " + superAdmin.getEmail());
+
+            } else {
+                unauthorized(response, "Invalid user type");
+                logger.error("Invalid user type for adminEmail: " + adminEmail);
+
+            }
 
         } catch (Exception e) {
             logger.error(e.getMessage());
