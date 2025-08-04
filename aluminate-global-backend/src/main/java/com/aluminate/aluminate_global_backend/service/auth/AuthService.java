@@ -156,6 +156,8 @@ public class AuthService {
 
             String subscriptionPlan = org.getSubscriptionPlan() != null ? org.getSubscriptionPlan().getName() : "No Plan";
 
+            String subscriptionPlan = org.getSubscriptionPlan() != null ? org.getSubscriptionPlan().getName() : "No Plan";
+
             OrganizationDTO orgDTO = new OrganizationDTO(
                     org.getId(),
                     org.getOrganizationName(),
@@ -168,6 +170,7 @@ public class AuthService {
                     org.getCurrentMemberCount(),
                     org.getStatus()
             );
+            logger.info("created OrganizationDTO");
 
             Map<String, Object> claims = new HashMap<>();
             claims.put("adminEmail", admin.getEmail());
