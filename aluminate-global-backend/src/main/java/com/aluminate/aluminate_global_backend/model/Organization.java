@@ -46,6 +46,9 @@ public class Organization {
     @Builder.Default
     private boolean isDeleted = false;
 
+    @Builder.Default
+    private boolean isMembershipFree = true;
+
     @OneToOne
     @JoinColumn(
             name = "admin_id",

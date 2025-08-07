@@ -3,7 +3,10 @@ package com.aluminate.aluminate_global_backend.service.auth;
 import com.aluminate.aluminate_global_backend.config.exception.*;
 import com.aluminate.aluminate_global_backend.config.util.Jwt;
 import com.aluminate.aluminate_global_backend.dto.getInfo.*;
+import com.aluminate.aluminate_global_backend.dto.login.LoginOrgResponse;
 import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
+import com.aluminate.aluminate_global_backend.dto.org.AdminOrgDTO;
+import com.aluminate.aluminate_global_backend.dto.org.OrganizationOrgDTO;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.model.*;
 import com.aluminate.aluminate_global_backend.repository.AdminRepository;
@@ -211,4 +214,64 @@ public class AuthService {
 
 
     }
+
+    public LoginOrgResponse orgAdminLogin(LoginRequest loginRequest) throws InactiveOrganizationException {
+        // get the UserDetails object
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(loginRequest.getEmail());
+        if (userDetails == null) {
+            throw new InvalidEmailException("Admin not found with email: " + loginRequest.getEmail());
+        }
+        // check if the user is an instance of Admin or SuperAdmin
+        if ((userDetails instanceof Admin)) {
+            logger.info("Identified user as Org Admin: " + loginRequest.getEmail());
+            Admin admin = (Admin) userDetails;
+            if (!passwordEncoder.matches(loginRequest.getPassword(), admin.getPassword())) {
+                throw new InvalidPasswordException("Invalid password");
+            }
+
+            Organization org = admin.getOrganization();
+            if (org == null) {
+                throw new RuntimeException("Admin does not belong to any organization");
+            }
+            else if(!org.getStatus().equals(Status.ACTIVE)) {
+                throw new InactiveOrganizationException("Organization is not active, Please log in to aluminate portal to activate your organization");
+            }
+
+            SecurityContextHolder.getContext().setAuthentication(
+                    UsernamePasswordAuthenticationToken.authenticated(admin, null, admin.getAuthorities())
+            );
+
+            AdminOrgDTO adminDTO = new AdminOrgDTO(
+                    admin.getName(),
+                    admin.getEmail(),
+                    admin.getPassword(),
+                    admin.getPhone(),
+                    admin.isEmailVerified()
+            );
+            //get organization
+            Organization organizationFromDb = admin.getOrganization();
+            //create OrganizationOrgDTO
+
+
+            OrganizationOrgDTO orgDTO = new OrganizationOrgDTO(
+                    organizationFromDb.getOrganizationName(),
+                    organizationFromDb.getMaxMemberCount(),
+                    organizationFromDb.getCurrentMemberCount(),
+                    organizationFromDb.getStatus(),
+                    organizationFromDb.isMembershipFree()
+            );
+
+            logger.info("created AadminDTO, OrganizationDTO");
+
+
+
+            return new LoginOrgResponse(adminDTO, orgDTO);
+
+
+        }else{
+            throw new InvalidEmailException("Admin not found with email: " + loginRequest.getEmail());
+        }
+    }
+
+
 }

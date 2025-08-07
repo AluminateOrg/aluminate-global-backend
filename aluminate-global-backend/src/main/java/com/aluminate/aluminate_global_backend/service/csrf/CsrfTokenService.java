@@ -1,7 +1,7 @@
 package com.aluminate.aluminate_global_backend.service.csrf;
 
 
-import com.aluminate.aluminate_global_backend.controller.AuthController;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -15,7 +15,7 @@ import java.util.Base64;
 public class CsrfTokenService {
     private final StringRedisTemplate redisTemplate;
     private final SecureRandom secureRandom = new SecureRandom();
-    private final Logger logger = LoggerFactory.getLogger(AuthController.class);
+    private final Logger logger = LoggerFactory.getLogger(CsrfTokenService.class);
 
     public CsrfTokenService(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
