@@ -1,10 +1,7 @@
 package com.aluminate.aluminate_global_backend.config;
 
 
-import com.aluminate.aluminate_global_backend.config.exception.DuplicateEmailException;
-import com.aluminate.aluminate_global_backend.config.exception.DuplicateOrganizationException;
-import com.aluminate.aluminate_global_backend.config.exception.InvalidEmailException;
-import com.aluminate.aluminate_global_backend.config.exception.InvalidPasswordException;
+import com.aluminate.aluminate_global_backend.config.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -45,6 +42,11 @@ public class GlobalExceptionHandler {
                 .body(new ResponseWrapper<>(false, "Invalid request format: " + ex.getLocalizedMessage(), null));
     }
 
+    @ExceptionHandler(InactiveOrganizationException.class)
+    public ResponseEntity<ResponseWrapper<Void>> handleInactiveOrganization(InactiveOrganizationException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ResponseWrapper<>(false, ex.getMessage(), null));
+    }
 
     @ExceptionHandler(InvalidEmailException.class)
     public ResponseEntity<ResponseWrapper<Void>> handleInvalidEmail(InvalidEmailException ex) {
