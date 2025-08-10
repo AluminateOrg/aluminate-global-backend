@@ -1,6 +1,5 @@
 package com.aluminate.aluminate_global_backend.dto.org;
 
-import com.aluminate.aluminate_global_backend.dto.getInfo.UserDTO;
 import lombok.*;
 
 @Data
@@ -8,12 +7,12 @@ import lombok.*;
 @AllArgsConstructor
 @Getter
 @Setter
-public class AdminOrgDTO {
+public class AdminGlobalDTO {
 
     private String name;
     private String email;
     private String password;
     private String phone;
-    private boolean emailVerified;
+
 }
 

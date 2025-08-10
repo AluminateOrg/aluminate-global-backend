@@ -8,10 +8,11 @@ import lombok.*;
 @AllArgsConstructor
 @Getter
 @Setter
-public class OrganizationOrgDTO {
+public class OrganizationGlobalDTO {
     private String organizationName;
     private int maxMemberCount;
     private int currentMemberCount;
     private Status status;
     private boolean isMembershipFree;
+    private boolean isDeleted;
 }
