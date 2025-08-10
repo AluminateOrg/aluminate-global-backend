@@ -5,8 +5,9 @@ import com.aluminate.aluminate_global_backend.config.util.Jwt;
 import com.aluminate.aluminate_global_backend.dto.getInfo.*;
 import com.aluminate.aluminate_global_backend.dto.login.LoginOrgResponse;
 import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
-import com.aluminate.aluminate_global_backend.dto.org.AdminOrgDTO;
-import com.aluminate.aluminate_global_backend.dto.org.OrganizationOrgDTO;
+import com.aluminate.aluminate_global_backend.dto.org.AdminGlobalDTO;
+import com.aluminate.aluminate_global_backend.dto.org.GlobalAuthResponse;
+import com.aluminate.aluminate_global_backend.dto.org.OrganizationGlobalDTO;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.model.*;
 import com.aluminate.aluminate_global_backend.repository.AdminRepository;
@@ -14,6 +15,7 @@ import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
 import com.aluminate.aluminate_global_backend.service.CustomUserDetailsService;
 import com.aluminate.aluminate_global_backend.service.csrf.CsrfTokenService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseCookie;
@@ -215,63 +217,40 @@ public class AuthService {
 
     }
 
-    public LoginOrgResponse orgAdminLogin(LoginRequest loginRequest) throws InactiveOrganizationException {
-        // get the UserDetails object
-        UserDetails userDetails = customUserDetailsService.loadUserByUsername(loginRequest.getEmail());
-        if (userDetails == null) {
-            throw new InvalidEmailException("Admin not found with email: " + loginRequest.getEmail());
+    public GlobalAuthResponse verifyAdminCredentials(@Valid LoginRequest loginRequest) {
+        // Check if the admin exists
+        Admin admin = (Admin) adminRepository.findByEmail(loginRequest.getEmail())
+                .orElseThrow(() -> new InvalidEmailException("Admin not found with email: " + loginRequest.getEmail()));
+        // Verify the password
+        if (!passwordEncoder.matches(loginRequest.getPassword(), admin.getPassword())) {
+            throw new InvalidPasswordException("Invalid password for admin: " + loginRequest.getEmail());
         }
-        // check if the user is an instance of Admin or SuperAdmin
-        if ((userDetails instanceof Admin)) {
-            logger.info("Identified user as Org Admin: " + loginRequest.getEmail());
-            Admin admin = (Admin) userDetails;
-            if (!passwordEncoder.matches(loginRequest.getPassword(), admin.getPassword())) {
-                throw new InvalidPasswordException("Invalid password");
-            }
-
-            Organization org = admin.getOrganization();
-            if (org == null) {
-                throw new RuntimeException("Admin does not belong to any organization");
-            }
-            else if(!org.getStatus().equals(Status.ACTIVE)) {
-                throw new InactiveOrganizationException("Organization is not active, Please log in to aluminate portal to activate your organization");
-            }
-
-            SecurityContextHolder.getContext().setAuthentication(
-                    UsernamePasswordAuthenticationToken.authenticated(admin, null, admin.getAuthorities())
-            );
-
-            AdminOrgDTO adminDTO = new AdminOrgDTO(
-                    admin.getName(),
-                    admin.getEmail(),
-                    admin.getPassword(),
-                    admin.getPhone(),
-                    admin.isEmailVerified()
-            );
-            //get organization
-            Organization organizationFromDb = admin.getOrganization();
-            //create OrganizationOrgDTO
-
-
-            OrganizationOrgDTO orgDTO = new OrganizationOrgDTO(
-                    organizationFromDb.getOrganizationName(),
-                    organizationFromDb.getMaxMemberCount(),
-                    organizationFromDb.getCurrentMemberCount(),
-                    organizationFromDb.getStatus(),
-                    organizationFromDb.isMembershipFree()
-            );
-
-            logger.info("created AadminDTO, OrganizationDTO");
-
-
-
-            return new LoginOrgResponse(adminDTO, orgDTO);
-
-
-        }else{
-            throw new InvalidEmailException("Admin not found with email: " + loginRequest.getEmail());
+        logger.info("Admin credentials verified for: " + loginRequest.getEmail());
+        // Check if the admin belongs to an organization
+        Organization org = admin.getOrganization();
+        if (org == null) {
+            throw new RuntimeException("Admin does not belong to any organization");
         }
+        // Create DTOs for admin and organization
+        AdminGlobalDTO adminDTO = new AdminGlobalDTO(
+                admin.getName(),
+                admin.getEmail(),
+                admin.getPassword(),
+                admin.getPhone()
+        );
+        OrganizationGlobalDTO orgDTO = new OrganizationGlobalDTO(
+                org.getOrganizationName(),
+                org.getMaxMemberCount(),
+                org.getCurrentMemberCount(),
+                org.getStatus(),
+                org.isMembershipFree(),
+                org.isDeleted()
+        );
+        logger.info("created organization DTO for: " + org.getOrganizationName());
+        logger.info("created admin DTO for: " + admin.getName());
+        // Create the response object
+        // Return the response
+        return new GlobalAuthResponse(true, adminDTO, orgDTO);
+
     }
-
-
 }

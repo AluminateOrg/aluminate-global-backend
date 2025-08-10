@@ -7,6 +7,7 @@ import com.aluminate.aluminate_global_backend.repository.AdminRepository;
 import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
 import com.aluminate.aluminate_global_backend.repository.SubscriptionPlanRepository;
 import com.aluminate.aluminate_global_backend.repository.TransactionRepository;
+import com.aluminate.aluminate_global_backend.service.kafka.EventPublisherService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,18 +31,21 @@ public class PaymentNotifyService {
     private final OrganizationRepository organizationRepository;
     private final AdminRepository adminRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
+    private final EventPublisherService eventPublisherService;
 
     private final Logger log = LoggerFactory.getLogger(PaymentNotifyService.class);
 
     public PaymentNotifyService(TransactionRepository transactionRepository,
                                 OrganizationRepository organizationRepository,
                                 AdminRepository adminRepository,
-                                SubscriptionPlanRepository subscriptionPlanRepository
+                                SubscriptionPlanRepository subscriptionPlanRepository,
+                                EventPublisherService eventPublisherService
     ) {
         this.transactionRepository = transactionRepository;
         this.organizationRepository = organizationRepository;
         this.adminRepository = adminRepository;
         this.subscriptionPlanRepository = subscriptionPlanRepository;
+        this.eventPublisherService = eventPublisherService;
     }
 
 
@@ -74,8 +78,9 @@ public class PaymentNotifyService {
 
                         transactionRepository.save(transaction);
                         log.info("Transaction saved! Order ID: {}", request.getOrder_id());
-                        //update plan details in organization
-//                        Optional<Organization> OptionalOrganization = organizationRepository.findById(transaction
+                        // Publish event to Kafka or any other message broker if needed
+
+
 
                     } else {
                         log.warn("Transaction not found for ID: {}", request.getOrder_id());

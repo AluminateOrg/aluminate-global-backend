@@ -18,7 +18,7 @@ public class Organization {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String organizationName;
 
     @ManyToOne
@@ -46,7 +46,8 @@ public class Organization {
     @Builder.Default
     private boolean isDeleted = false;
 
-    @Builder.Default
+//    @Builder.Default
+    @Column(nullable = true)
     private boolean isMembershipFree = true;
 
     @OneToOne
