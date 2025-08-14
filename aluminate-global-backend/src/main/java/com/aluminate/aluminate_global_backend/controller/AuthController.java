@@ -2,21 +2,27 @@ package com.aluminate.aluminate_global_backend.controller;
 
 
 import com.aluminate.aluminate_global_backend.config.ResponseWrapper;
-import com.aluminate.aluminate_global_backend.config.exception.EmailNotVerifiedException;
-import com.aluminate.aluminate_global_backend.dto.getInfo.InfoResponse;
+import com.aluminate.aluminate_global_backend.config.util.RSAEncryptionUtil;
 import com.aluminate.aluminate_global_backend.dto.getInfo.LogInfoResponse;
+import com.aluminate.aluminate_global_backend.dto.login.EncryptedLoginRequest;
 import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
+import com.aluminate.aluminate_global_backend.dto.org.GlobalAuthResponse;
+import com.aluminate.aluminate_global_backend.dto.registration.EncryptedRegistrationRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.service.auth.AuthService;
 import com.aluminate.aluminate_global_backend.service.csrf.CsrfTokenService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.http.ResponseCookie;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.WebClient;
 
-import java.time.Duration;
-import java.util.UUID;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.logging.Logger;
 
 @RestController
@@ -25,21 +31,51 @@ public class AuthController {
     // This controller will handle authentication-related endpoints.
     // Currently, it does not have any methods defined.
     // You can add methods for login, registration, etc. as needed.
+    @Value("${encryption.global.private-key}")
+    private String globalPrivateKeyENV;
 
+    @Value("${encryption.organization.public-key}")
+    private String organizationPublicKeyENV;
+
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final AuthService authService;
     private final CsrfTokenService csrfTokenService;
     private static final Logger logger = Logger.getLogger(AuthController.class.getName());
+    private PrivateKey globalPrivateKey;
+    private PublicKey organizationPublicKey;
+
+
+
+    @Autowired
+    private WebClient.Builder webClientBuilder;
+
 
     public AuthController(AuthService authService, CsrfTokenService csrfTokenService) {
         this.authService = authService;
         this.csrfTokenService = csrfTokenService;
+
+    }
+    @PostConstruct
+    public void initKeys() throws Exception {
+        this.globalPrivateKey = RSAEncryptionUtil.privateKeyFromPem(globalPrivateKeyENV);
+        this.organizationPublicKey = RSAEncryptionUtil.publicKeyFromPem(organizationPublicKeyENV);
     }
 
 
     @PostMapping("/register")
-    public ResponseEntity<ResponseWrapper<String>> register(@Valid @RequestBody RegistrationRequest request, HttpServletResponse httpResponse) {
+    public ResponseEntity<ResponseWrapper<String>> register(@Valid @RequestBody EncryptedRegistrationRequest EncryptedRequest, HttpServletResponse httpResponse) {
         try{
             logger.info("Reached Auth Controller!");
+            // Decrypt the registration request
+            String decrypted = RSAEncryptionUtil.decrypt(
+                    EncryptedRequest.getPayload(),
+                    globalPrivateKey
+            );
+            RegistrationRequest request = objectMapper.readValue(
+                    decrypted,
+                    RegistrationRequest.class
+            );
             String token = authService.register(request);
 
             authService.setAuthCookies(httpResponse, token);
@@ -91,9 +127,19 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseWrapper<String>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse httpResponse) {
+    public ResponseEntity<ResponseWrapper<String>> login(@Valid @RequestBody EncryptedLoginRequest encryptedLoginRequest, HttpServletResponse httpResponse) {
         try {
             logger.info("Reached Auth Controller!");
+            //decrypt
+
+            String decrypted = RSAEncryptionUtil.decrypt(
+                    encryptedLoginRequest.getPayload(),
+                    globalPrivateKey
+            );
+            LoginRequest loginRequest = objectMapper.readValue(
+                    decrypted,
+                    LoginRequest.class
+            );
             LogInfoResponse logInfoResponse = authService.login(loginRequest);
             String token = logInfoResponse.getToken();
 
@@ -107,12 +153,34 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/verify-admin")
+    public ResponseEntity<GlobalAuthResponse> verifyAdminCredentials(@Valid @RequestBody String encryptedLoginRequest) {
+        try {
+            logger.info("Reached Verify Admin Credentials Controller!");
+            String decrypted = RSAEncryptionUtil.decrypt(
+                    encryptedLoginRequest,
+                    globalPrivateKey
+            );
+            logger.info("decrypted: " + decrypted);
+            LoginRequest loginRequest = objectMapper.readValue(
+                    decrypted,
+                    LoginRequest.class
+            );
+            GlobalAuthResponse response = authService.verifyAdminCredentials(loginRequest);
+            logger.info("Admin credentials verified successfully!");
 
 
 
 
+            GlobalAuthResponse body = new GlobalAuthResponse(true, response.getAdmin(),response.getOrganization());
+            logger.info("Returning response: " + body);
+            return ResponseEntity.ok(body);
+        } catch (Exception e) {
+            logger.warning("Error verifying admin credentials: " + e.getMessage());
 
-
+            throw new RuntimeException(e);
+        }
+    }
 
 
 }
