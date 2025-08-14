@@ -4,8 +4,10 @@ package com.aluminate.aluminate_global_backend.controller;
 import com.aluminate.aluminate_global_backend.config.ResponseWrapper;
 import com.aluminate.aluminate_global_backend.config.util.RSAEncryptionUtil;
 import com.aluminate.aluminate_global_backend.dto.getInfo.LogInfoResponse;
+import com.aluminate.aluminate_global_backend.dto.login.EncryptedLoginRequest;
 import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
 import com.aluminate.aluminate_global_backend.dto.org.GlobalAuthResponse;
+import com.aluminate.aluminate_global_backend.dto.registration.EncryptedRegistrationRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.service.auth.AuthService;
 import com.aluminate.aluminate_global_backend.service.csrf.CsrfTokenService;
@@ -62,9 +64,18 @@ public class AuthController {
 
 
     @PostMapping("/register")
-    public ResponseEntity<ResponseWrapper<String>> register(@Valid @RequestBody RegistrationRequest request, HttpServletResponse httpResponse) {
+    public ResponseEntity<ResponseWrapper<String>> register(@Valid @RequestBody EncryptedRegistrationRequest EncryptedRequest, HttpServletResponse httpResponse) {
         try{
             logger.info("Reached Auth Controller!");
+            // Decrypt the registration request
+            String decrypted = RSAEncryptionUtil.decrypt(
+                    EncryptedRequest.getPayload(),
+                    globalPrivateKey
+            );
+            RegistrationRequest request = objectMapper.readValue(
+                    decrypted,
+                    RegistrationRequest.class
+            );
             String token = authService.register(request);
 
             authService.setAuthCookies(httpResponse, token);
@@ -116,9 +127,19 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ResponseWrapper<String>> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse httpResponse) {
+    public ResponseEntity<ResponseWrapper<String>> login(@Valid @RequestBody EncryptedLoginRequest encryptedLoginRequest, HttpServletResponse httpResponse) {
         try {
             logger.info("Reached Auth Controller!");
+            //decrypt
+
+            String decrypted = RSAEncryptionUtil.decrypt(
+                    encryptedLoginRequest.getPayload(),
+                    globalPrivateKey
+            );
+            LoginRequest loginRequest = objectMapper.readValue(
+                    decrypted,
+                    LoginRequest.class
+            );
             LogInfoResponse logInfoResponse = authService.login(loginRequest);
             String token = logInfoResponse.getToken();
 
@@ -131,8 +152,6 @@ public class AuthController {
             throw new RuntimeException(e);
         }
     }
-
-
 
     @PostMapping("/verify-admin")
     public ResponseEntity<GlobalAuthResponse> verifyAdminCredentials(@Valid @RequestBody String encryptedLoginRequest) {
