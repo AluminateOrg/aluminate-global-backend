@@ -93,6 +93,8 @@ public class AuthService {
 
     @Transactional
     public String register(RegistrationRequest request) {
+        //decrypt the request
+
         if (adminRepository.existsByEmail(request.getEmail())) {
             throw new DuplicateEmailException("Admin with this email already exists");
         }
