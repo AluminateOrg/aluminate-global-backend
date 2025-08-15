@@ -22,6 +22,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       WEBSITE_FRONTEND_URL: http://localhost:3000
       ADMIN_FRONTEND_URL: http://localhost:3001
+      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST}
+      SPRING_REDIS_PORT: ${SPRING_REDIS_PORT}
+      SPRING_GLOBAL_PRIVATE_KEY: ${SPRING_GLOBAL_PRIVATE_KEY}
+      SPRING_ORGANIZATION_PUBLIC_KEY: ${SPRING_ORGANIZATION_PUBLIC_KEY}
     ports:
       - "8080:8080"  # Application port
       - "5005:5005"  # Debug port
@@ -30,6 +34,7 @@ services:
       - ~/.m2:/root/.m2  # Cache Maven dependencies
     depends_on:
       - postgres
+      - redis	
     networks:
       - aluminate-network
 
@@ -40,7 +45,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      BACKEND_URL: http://backend:8080
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:8080
     volumes:
       - ./aluminate-website-frontend:/app
       - /app/node_modules
@@ -56,7 +61,7 @@ services:
     ports:
       - "3001:3000"
     environment:
-      BACKEND_URL: http://backend:8080
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:8080
     volumes:
       - ./aluminate-admin-frontend:/app
       - /app/node_modules

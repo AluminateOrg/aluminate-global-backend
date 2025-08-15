@@ -8,6 +8,7 @@ public class AluminateGlobalBackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(AluminateGlobalBackendApplication.class, args);
+		System.out.println("✅ Aluminate Global Backend is running" );
 	}
 
 }

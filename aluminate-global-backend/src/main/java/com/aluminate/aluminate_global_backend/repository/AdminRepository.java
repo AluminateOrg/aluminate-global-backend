@@ -1,0 +1,16 @@
+package com.aluminate.aluminate_global_backend.repository;
+
+import com.aluminate.aluminate_global_backend.model.Admin;
+import jakarta.validation.constraints.NotBlank;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface AdminRepository extends JpaRepository<Admin, Long> {
+    boolean existsAdminByEmail(String email);
+    Optional<Admin> findAdminByEmail(String email);
+
+    boolean existsByEmail(@NotBlank(message = "cannot be blank") String email);
+
+    Optional<Object> findByEmail(@NotBlank(message = "Email is required") String email);
+}
