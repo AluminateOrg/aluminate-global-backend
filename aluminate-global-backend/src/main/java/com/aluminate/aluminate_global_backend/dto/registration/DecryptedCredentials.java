@@ -1,28 +1,19 @@
 package com.aluminate.aluminate_global_backend.dto.registration;
 
-
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegistrationRequest {
+public class DecryptedCredentials {
     @NotBlank(message = "cannot be blank")
-    private String organizationName;
-
-    @NotBlank(message = "cannot be blank")
-    private String adminFullName;
-
-
+    private String email;
 
     @NotBlank(message = "cannot be blank")
-    private String phoneNumber;
-
-
-
-    @NotBlank(message = "cannot be blank")
-    private String nationalId;
+    private String password;
 }
