@@ -82,10 +82,10 @@ public class AuthController {
             FinalRegistrationRequest request = new FinalRegistrationRequest(
                     EncryptedRequest.getObj().getOrganizationName(),
                     EncryptedRequest.getObj().getAdminFullName(),
-                    EncryptedRequest.getObj().getPhoneNumber(),
-                    EncryptedRequest.getObj().getNationalId(),
                     credentials.getEmail(),
-                    credentials.getPassword()
+                    EncryptedRequest.getObj().getPhoneNumber(),
+                    credentials.getPassword(),
+                    EncryptedRequest.getObj().getNationalId()
             );
 
             String token = authService.register(request);
