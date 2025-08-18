@@ -8,6 +8,7 @@ import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
 import com.aluminate.aluminate_global_backend.dto.org.AdminGlobalDTO;
 import com.aluminate.aluminate_global_backend.dto.org.GlobalAuthResponse;
 import com.aluminate.aluminate_global_backend.dto.org.OrganizationGlobalDTO;
+import com.aluminate.aluminate_global_backend.dto.registration.FinalRegistrationRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.model.*;
 import com.aluminate.aluminate_global_backend.repository.AdminRepository;
@@ -92,7 +93,7 @@ public class AuthService {
     }
 
     @Transactional
-    public String register(RegistrationRequest request) {
+    public String register(FinalRegistrationRequest request) {
         //decrypt the request
 
         if (adminRepository.existsByEmail(request.getEmail())) {

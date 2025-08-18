@@ -7,7 +7,9 @@ import com.aluminate.aluminate_global_backend.dto.getInfo.LogInfoResponse;
 import com.aluminate.aluminate_global_backend.dto.login.EncryptedLoginRequest;
 import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
 import com.aluminate.aluminate_global_backend.dto.org.GlobalAuthResponse;
+import com.aluminate.aluminate_global_backend.dto.registration.DecryptedCredentials;
 import com.aluminate.aluminate_global_backend.dto.registration.EncryptedRegistrationRequest;
+import com.aluminate.aluminate_global_backend.dto.registration.FinalRegistrationRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.service.auth.AuthService;
 import com.aluminate.aluminate_global_backend.service.csrf.CsrfTokenService;
@@ -23,6 +25,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 @RestController
@@ -66,16 +69,25 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<ResponseWrapper<String>> register(@Valid @RequestBody EncryptedRegistrationRequest EncryptedRequest, HttpServletResponse httpResponse) {
         try{
-            logger.info("Reached Auth Controller!");
+            logger.info("Reached Auth Controller! request-> " + EncryptedRequest);
             // Decrypt the registration request
             String decrypted = RSAEncryptionUtil.decrypt(
                     EncryptedRequest.getPayload(),
                     globalPrivateKey
             );
-            RegistrationRequest request = objectMapper.readValue(
+            DecryptedCredentials credentials = objectMapper.readValue(
                     decrypted,
-                    RegistrationRequest.class
+                    DecryptedCredentials.class
             );
+            FinalRegistrationRequest request = new FinalRegistrationRequest(
+                    EncryptedRequest.getObj().getOrganizationName(),
+                    EncryptedRequest.getObj().getAdminFullName(),
+                    credentials.getEmail(),
+                    EncryptedRequest.getObj().getPhoneNumber(),
+                    credentials.getPassword(),
+                    EncryptedRequest.getObj().getNationalId()
+            );
+
             String token = authService.register(request);
 
             authService.setAuthCookies(httpResponse, token);

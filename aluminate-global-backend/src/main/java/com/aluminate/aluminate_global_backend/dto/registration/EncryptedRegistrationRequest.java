@@ -11,4 +11,5 @@ import lombok.Setter;
 @AllArgsConstructor
 public class EncryptedRegistrationRequest {
     private String payload; // Encrypted registration request in JSON format
+    private RegistrationRequest obj;
 }
