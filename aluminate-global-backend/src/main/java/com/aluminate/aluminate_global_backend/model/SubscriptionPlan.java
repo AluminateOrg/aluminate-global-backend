@@ -26,16 +26,15 @@ public class SubscriptionPlan {
 
     private Integer durationInMonths;
 
-    @ElementCollection
-    @CollectionTable(
-            name = "subscription_plan_features",
-            joinColumns = @JoinColumn(name = "subscription_plan_id")
-    )
-    @Column(name = "feature")
-    private List<String> features;
+    private Integer storageInGB;
 
+    private Integer cpu;
 
+    private Integer ram;
 
+    @OneToMany(mappedBy = "subscriptionPlan" , cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SubscriptionPlanFeature> subscriptionPlanFeatures;
+    
     public boolean isPresent() {
         return id != null;
     }
