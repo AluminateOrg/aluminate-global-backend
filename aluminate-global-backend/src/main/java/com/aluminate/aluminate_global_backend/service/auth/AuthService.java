@@ -139,6 +139,7 @@ public class AuthService {
         }
         // check if the user is an instance of Admin or SuperAdmin
         if ((userDetails instanceof Admin)) {
+
             logger.info("Identified user as Admin: " + loginRequest.getEmail());
             Admin admin = (Admin) userDetails;
             if (!passwordEncoder.matches(loginRequest.getPassword(), admin.getPassword())) {
