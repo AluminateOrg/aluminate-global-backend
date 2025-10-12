@@ -7,8 +7,12 @@ RUN apt-get update && \
     apt-get install -y maven && \
     apt-get clean
 
+# Set env variables (from Docker Compose)
+ARG GLOBAL_PORT
+ENV SERVER_PORT=$GLOBAL_PORT
+
 # The pom.xml and src will be mounted as volumes
-EXPOSE 8080
+EXPOSE $GLOBAL_PORT
 
 # Run with spring-boot:run for development (enables hot reload)
 CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"]
