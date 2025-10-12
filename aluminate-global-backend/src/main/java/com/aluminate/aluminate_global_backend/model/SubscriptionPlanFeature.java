@@ -21,7 +21,7 @@ public class SubscriptionPlanFeature {
 
     @ManyToOne
     @JoinColumn(name = "feature_id")
-    private Features features;
+    private PlanFeature planFeature;
 
     private boolean enabled;
 }
