@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,6 +55,42 @@ public class SubscriptionPlanService {
     public List<SubscriptionPlan> getAllSubscriptionPlans() {
         return subscriptionPlanRepository.findAll();
     }
+
+    @Transactional
+    public Optional<SubscriptionPlan> updateSubscriptionPlan(Long id, SubscriptionPlanRequest request) {
+        Optional<SubscriptionPlan> optionalPlan = subscriptionPlanRepository.findById(id);
+        if (optionalPlan.isPresent()) {
+            SubscriptionPlan plan = optionalPlan.get();
+            plan.setName(request.getName());
+            plan.setPrice(request.getPrice());
+            plan.setCpu(request.getCpu());
+            plan.setRam(request.getRam());
+            plan.setDurationInMonths(request.getDurationInMonths());
+            plan.setMemberLimit(request.getMemberLimit());
+            plan.setStorageInGB(request.getStorageInGB());
+
+            if (plan.getSubscriptionPlanFeatures() != null) {
+                plan.getSubscriptionPlanFeatures().clear();
+            }
+
+            if (request.getFeature() != null) {
+                List<SubscriptionPlanFeature> featureEntities = request.getFeature().stream()
+                        .map(f -> {
+                            PlanFeature planFeature = featuresRepository.findById(f.getFeatureId())
+                                    .orElseThrow(() -> new RuntimeException("Feature not found for ID: " + f.getFeatureId()));
+                            SubscriptionPlanFeature entity = new SubscriptionPlanFeature();
+                            entity.setPlanFeature(planFeature);
+                            entity.setSubscriptionPlan(plan);
+                            entity.setEnabled(request.getFeature().get(0).isEnabled());
+                            return entity;
+                        }).toList();
+                plan.setSubscriptionPlanFeatures(featureEntities);
+            }
+            return Optional.of(subscriptionPlanRepository.save(plan));
+        }
+        return Optional.empty();
+    }
+
 
 
 
