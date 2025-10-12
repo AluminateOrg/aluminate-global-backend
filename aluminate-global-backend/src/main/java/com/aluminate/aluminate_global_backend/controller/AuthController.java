@@ -168,6 +168,8 @@ public class AuthController {
             LogInfoResponse logInfoResponse = authService.login(loginRequest);
             String token = logInfoResponse.getToken();
 
+
+
             authService.setAuthCookies(httpResponse, token);
             logger.info("user logged in!");
             // You can return null or some data
