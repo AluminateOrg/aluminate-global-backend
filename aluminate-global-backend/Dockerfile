@@ -1,18 +1,26 @@
-# this docker file is only suitable for dev, for production we need a separate one. this one probably enables hot reloading.
-FROM eclipse-temurin:21-jdk
+# STAGE 1: Build stage with Maven
+FROM maven:3.9 AS builder
 WORKDIR /app
 
-# Install Maven
-RUN apt-get update && \
-    apt-get install -y maven && \
-    apt-get clean
+# Copy pom.xml and download dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-# Set env variables (from Docker Compose)
+# Copy source code and build the application
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# STAGE 2: Runtime stage with OpenJDK 21
+FROM eclipse-temurin:21-jdk AS runtime
+WORKDIR /app
+
+# Copy the built JAR file from the builder stage
+COPY --from=builder /app/target/*.jar app.jar
+
+# Set environment variables
 ARG GLOBAL_PORT
 ENV SERVER_PORT=$GLOBAL_PORT
-
-# The pom.xml and src will be mounted as volumes
 EXPOSE $GLOBAL_PORT
 
-# Run with spring-boot:run for development (enables hot reload)
-CMD ["mvn", "spring-boot:run", "-Dspring-boot.run.jvmArguments='-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005'"]
+# Run the application
+CMD ["java", "-jar", "app.jar"]
