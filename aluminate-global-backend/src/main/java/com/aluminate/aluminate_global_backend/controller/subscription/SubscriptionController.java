@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("${api.prefix}/subscription-plan")
+@RequestMapping("${api.prefix}/public/subscription-plan")
 public class SubscriptionController {
 
     private final SubscriptionPlanService subscriptionPlanService;
@@ -38,6 +38,16 @@ public class SubscriptionController {
         try {
             SubscriptionPlan updatedPlan = subscriptionPlanService.updateSubscriptionPlan(id, request).orElse(null);
             return ResponseEntity.ok(updatedPlan);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
+    }
+
+    @GetMapping("/delete/{id}")
+    public ResponseEntity<Boolean> deleteSubscriptionPlan(@PathVariable Long id) {
+        try {
+            boolean deleted = subscriptionPlanService.deleteSubscriptionPlan(id);
+            return ResponseEntity.ok(deleted);
         } catch (Exception e) {
             return ResponseEntity.status(500).build();
         }

@@ -45,6 +45,7 @@ public class SubscriptionPlanService {
                         SubscriptionPlanFeature entity = new SubscriptionPlanFeature();
                         entity.setPlanFeature(planFeature);
                         entity.setSubscriptionPlan(plan);
+                        entity.setEnabled(f.isEnabled());
                         return entity;
                     }).toList();
             plan.setSubscriptionPlanFeatures(featureEntities);
@@ -81,7 +82,7 @@ public class SubscriptionPlanService {
                             SubscriptionPlanFeature entity = new SubscriptionPlanFeature();
                             entity.setPlanFeature(planFeature);
                             entity.setSubscriptionPlan(plan);
-                            entity.setEnabled(request.getFeature().get(0).isEnabled());
+                            entity.setEnabled(f.isEnabled());
                             return entity;
                         }).toList();
                 plan.setSubscriptionPlanFeatures(featureEntities);
@@ -91,7 +92,15 @@ public class SubscriptionPlanService {
         return Optional.empty();
     }
 
-
-
+    //delete plan
+    @Transactional
+    public boolean deleteSubscriptionPlan(Long id) {
+        Optional<SubscriptionPlan> plan = subscriptionPlanRepository.findById(id);
+        if (plan.isPresent()) {
+            subscriptionPlanRepository.delete(plan.get());
+            return true;
+        }
+        return false;
+    }
 
 }

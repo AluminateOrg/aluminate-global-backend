@@ -1,10 +1,8 @@
 package com.aluminate.aluminate_global_backend.service.payment;
 
 import com.aluminate.aluminate_global_backend.dto.payment.HashResponse;
-import com.aluminate.aluminate_global_backend.model.Admin;
-import com.aluminate.aluminate_global_backend.model.Organization;
-import com.aluminate.aluminate_global_backend.model.Transaction;
-import com.aluminate.aluminate_global_backend.model.TransactionStatus;
+import com.aluminate.aluminate_global_backend.model.*;
+import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
 import com.aluminate.aluminate_global_backend.repository.TransactionRepository;
 
 import org.slf4j.Logger;
@@ -28,10 +26,12 @@ public class HashService {
     private String merchantSecret;
 
     private final TransactionRepository transactionRepository;
+    private final OrganizationRepository organizationRepository;
     private final Logger logger = LoggerFactory.getLogger(HashService.class);
 
-    public HashService(TransactionRepository transactionRepository) {
+    public HashService(TransactionRepository transactionRepository, OrganizationRepository organizationRepository) {
         this.transactionRepository = transactionRepository;
+        this.organizationRepository = organizationRepository;
     }
 
     public HashResponse generateHash(double amount, String currency, Organization organization, Admin admin) {
@@ -52,6 +52,10 @@ public class HashService {
                 .admin(admin)
                 .build();
         Transaction saved = transactionRepository.save(transaction);
+
+        //change the organization status to active
+        organization.setStatus(Status.ACTIVE);
+        organizationRepository.save(organization);
 
         String orderId = saved.getId().toString(); // Must use this exact ID in frontend
         logger.info("Order ID: " + orderId);

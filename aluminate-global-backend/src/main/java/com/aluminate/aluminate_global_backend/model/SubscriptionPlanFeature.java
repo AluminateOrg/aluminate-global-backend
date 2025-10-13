@@ -17,6 +17,7 @@ public class SubscriptionPlanFeature {
 
     @ManyToOne
     @JoinColumn(name = "subscription_plan_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private SubscriptionPlan subscriptionPlan;
 
     @ManyToOne

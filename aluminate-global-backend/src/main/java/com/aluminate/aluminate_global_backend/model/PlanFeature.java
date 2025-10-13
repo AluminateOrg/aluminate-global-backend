@@ -9,6 +9,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Table(name = "features")
 public class PlanFeature {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
