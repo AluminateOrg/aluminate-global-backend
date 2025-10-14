@@ -53,17 +53,11 @@ public class HashService {
                 .build();
         Transaction saved = transactionRepository.save(transaction);
 
-        //change the organization status to active
-        organization.setStatus(Status.ACTIVE);
-        organizationRepository.save(organization);
-
         String orderId = saved.getId().toString(); // Must use this exact ID in frontend
         logger.info("Order ID: " + orderId);
 
         String raw = (merchantId + orderId + formattedAmount + currency + localHash).toUpperCase();
         String hash = md5(raw).toUpperCase();
-
-
 
         return new HashResponse(hash, saved.getId()); // include order ID
     }

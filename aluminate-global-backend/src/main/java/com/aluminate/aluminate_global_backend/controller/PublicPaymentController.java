@@ -35,4 +35,22 @@ public class PublicPaymentController {
         }
     }
 
+    @GetMapping("/verify/{orderId}")
+    public ResponseEntity<ResponseWrapper<Boolean>> verifyPayment(@PathVariable String orderId) {
+        try {
+            boolean verified = paymentNotifyService.changeOrgStatus(Long.valueOf(orderId));
+            if (verified) {
+                logger.info("Payment verified successfully");
+                return ResponseEntity.ok(new ResponseWrapper<>(true, "Payment verified", true));
+            } else {
+                logger.error("Payment verification failed");
+                return ResponseEntity.ok(new ResponseWrapper<>(false, "Payment verification failed", false));
+            }
+        } catch (Exception e) {
+            logger.error("Error verifying payment", e);
+            return ResponseEntity.internalServerError()
+                    .body(new ResponseWrapper<>(false, "Error verifying payment", false));
+        }
+    }
+
 }
