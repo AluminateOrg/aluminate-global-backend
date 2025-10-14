@@ -46,8 +46,7 @@ public class Organization {
     @Builder.Default
     private boolean isDeleted = false;
 
-//    @Builder.Default
-    @Column(nullable = true)
+    @Builder.Default
     private boolean isMembershipFree = true;
 
     @OneToOne
