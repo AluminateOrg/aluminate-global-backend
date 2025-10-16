@@ -43,6 +43,7 @@ public class FallbackController {
     public ResponseEntity<String> testEncryption(@RequestBody TestRequest request, HttpServletRequest httpServletRequest) {
         log.info("FallbackController: Received request to /testEncryption with message: {}", request);
         try {
+
             String decryptedMessage = RSAEncryptionUtil.decrypt(request.getMessage(), globalPrivateKey);
             log.info("Decrypted message: {}", decryptedMessage);
             return ResponseEntity.ok("Decrypted message: " + decryptedMessage);
