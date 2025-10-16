@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("${api.prefix}/public/subscription-plan")
+@RequestMapping("${api.prefix}/superAdmin/subscription-plan")
 public class SubscriptionController {
 
     private final SubscriptionPlanService subscriptionPlanService;
