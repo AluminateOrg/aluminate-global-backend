@@ -51,7 +51,11 @@ public class EmailService {
         htmlContent = htmlContent.replace("{{OTP}}", otp);
         helper.setText(htmlContent, true);
         mailSender.send(mimeMessage);
+<<<<<<< HEAD
         logger.info("mail sent huray!");
+=======
+        System.out.println("Email sent successfully");
+>>>>>>> develop
     }
 
     public String getHtmlTemplate(String path) throws IOException {
