@@ -1,17 +1,24 @@
 package com.aluminate.aluminate_global_backend.config.util;
 
 
+import com.aluminate.aluminate_global_backend.controller.AuthController;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemWriter;
 import javax.crypto.Cipher;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 import java.io.StringWriter;
 import java.security.*;
+import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.logging.Logger;
 
 public class RSAEncryptionUtil {
+    private static final Logger logger = Logger.getLogger(AuthController.class.getName());
+
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
@@ -64,7 +71,16 @@ public class RSAEncryptionUtil {
 
     public static String decrypt(String ciphertext, PrivateKey privateKey) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding", "BC");
-        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        logger.info("starting decryption process, priv key -> " + privateKey.toString());
+        OAEPParameterSpec oaepParams = new OAEPParameterSpec(
+                "SHA-256",                      // OAEP digest
+                "MGF1",                          // MGF1 algorithm
+                new MGF1ParameterSpec("SHA-1"),  // MGF1 digest
+                PSource.PSpecified.DEFAULT       // label
+        );
+
+        cipher.init(Cipher.DECRYPT_MODE, privateKey, oaepParams);
+
         return new String(cipher.doFinal(Base64.getDecoder().decode(ciphertext)));
     }
 

@@ -88,6 +88,7 @@ public class AuthController {
                     EncryptedRequest.getPayload(),
                     globalPrivateKey
             );
+            logger.info("decrypted: " + decrypted);
             DecryptedCredentials credentials = objectMapper.readValue(
                     decrypted,
                     DecryptedCredentials.class
