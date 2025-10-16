@@ -1,5 +1,8 @@
 package com.aluminate.aluminate_global_backend.service.otp;
 
+import com.aluminate.aluminate_global_backend.service.auth.AuthService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.stereotype.Service;
@@ -10,6 +13,8 @@ import java.util.concurrent.TimeUnit;
 public class OtpService {
 
     private final RedisTemplate<String, String> redisTemplate;
+    private final Logger logger = LoggerFactory.getLogger(AuthService.class);
+
 
     public OtpService(RedisTemplate<String, String> redisTemplate) {
         this.redisTemplate = redisTemplate;
@@ -18,6 +23,8 @@ public class OtpService {
     public void saveOtp(String email, String otp) {
         ValueOperations<String, String> ops = redisTemplate.opsForValue();
         ops.set("otp:" + email, otp, 5, TimeUnit.MINUTES);
+        logger.info("OTP saved " + email);
+
     }
 
     public String getOtp(String email) {
