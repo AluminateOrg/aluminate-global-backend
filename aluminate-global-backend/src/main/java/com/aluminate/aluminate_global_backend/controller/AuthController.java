@@ -7,14 +7,18 @@ import com.aluminate.aluminate_global_backend.dto.getInfo.LogInfoResponse;
 import com.aluminate.aluminate_global_backend.dto.login.EncryptedLoginRequest;
 import com.aluminate.aluminate_global_backend.dto.login.LoginRequest;
 import com.aluminate.aluminate_global_backend.dto.org.GlobalAuthResponse;
+import com.aluminate.aluminate_global_backend.dto.otp.OtpRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.DecryptedCredentials;
 import com.aluminate.aluminate_global_backend.dto.registration.EncryptedRegistrationRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.FinalRegistrationRequest;
 import com.aluminate.aluminate_global_backend.dto.registration.RegistrationRequest;
 import com.aluminate.aluminate_global_backend.service.auth.AuthService;
 import com.aluminate.aluminate_global_backend.service.csrf.CsrfTokenService;
+import com.aluminate.aluminate_global_backend.service.email.EmailService;
+import com.aluminate.aluminate_global_backend.service.otp.OtpService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,9 +27,11 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Optional;
+import java.util.Random;
 import java.util.logging.Logger;
 
 @RestController
@@ -43,6 +49,8 @@ public class AuthController {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AuthService authService;
+    private final EmailService emailService;
+    private final OtpService otpService;
     private final CsrfTokenService csrfTokenService;
     private static final Logger logger = Logger.getLogger(AuthController.class.getName());
     private PrivateKey globalPrivateKey;
@@ -54,10 +62,11 @@ public class AuthController {
     private WebClient.Builder webClientBuilder;
 
 
-    public AuthController(AuthService authService, CsrfTokenService csrfTokenService) {
+    public AuthController(AuthService authService, CsrfTokenService csrfTokenService, EmailService emailService, OtpService otpService) {
+        this.emailService = emailService;
         this.authService = authService;
         this.csrfTokenService = csrfTokenService;
-
+        this.otpService = otpService;
     }
     @PostConstruct
     public void initKeys() throws Exception {
@@ -79,6 +88,10 @@ public class AuthController {
                     decrypted,
                     DecryptedCredentials.class
             );
+
+            // send otp to the email and verify
+
+
             FinalRegistrationRequest request = new FinalRegistrationRequest(
                     EncryptedRequest.getObj().getOrganizationName(),
                     EncryptedRequest.getObj().getAdminFullName(),
@@ -193,6 +206,28 @@ public class AuthController {
             logger.warning("Error verifying admin credentials: " + e.getMessage());
 
             throw new RuntimeException(e);
+        }
+    }
+
+    @GetMapping("/send-otp")
+    public ResponseEntity<ResponseWrapper<String>> sendOtp(@RequestParam String email) throws MessagingException, IOException {
+        String otp = String.format("%06d", new Random().nextInt(999999));
+        emailService.sendOtpMail(email, otp);
+        otpService.saveOtp(email, otp);
+        ResponseWrapper<String> body = new ResponseWrapper<>(true, "OTP sent successfully", otp);
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ResponseWrapper<String>> verifyOtp(@RequestBody OtpRequest otpRequest) {
+        System.out.println("email and otp" + otpRequest.getEmail() + " " + otpRequest.getOtp() );
+        boolean isValid = otpService.verifyOtp(otpRequest.getEmail(), otpRequest.getOtp());
+        if (isValid) {
+            ResponseWrapper<String> body = new ResponseWrapper<>(true, "OTP verified successfully", null);
+            return ResponseEntity.ok(body);
+        } else {
+            ResponseWrapper<String> body = new ResponseWrapper<>(false, "Invalid OTP", null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
         }
     }
 

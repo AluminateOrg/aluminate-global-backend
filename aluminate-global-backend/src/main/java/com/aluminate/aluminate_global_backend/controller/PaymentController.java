@@ -38,6 +38,7 @@ public class PaymentController {
         //get the current admin and organization from the security context
         Admin admin = (Admin) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Organization organization = admin.getOrganization();
+        
         HashResponse hashResponse = hashService.generateHash(request.getAmount(), request.getCurrency(), organization, admin);
 
         ResponseWrapper<HashResponse> body = new ResponseWrapper<>(

@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 import java.security.MessageDigest;
@@ -46,6 +47,25 @@ public class PaymentNotifyService {
         this.adminRepository = adminRepository;
         this.subscriptionPlanRepository = subscriptionPlanRepository;
         this.eventPublisherService = eventPublisherService;
+    }
+
+    @Transactional
+    public boolean changeOrgStatus(@RequestParam Long orderId) {
+        Optional<Transaction> optTran = transactionRepository.findById(orderId);
+        if (optTran.isPresent()) {
+            Long orgId = optTran.get().getOrganization().getId();
+            Optional<Organization> optOrg = organizationRepository.findById(orgId);
+            if (optOrg.isPresent()) {
+                Organization org = optOrg.get();
+                org.setStatus(Status.ACTIVE);
+                organizationRepository.save(org);
+                return true;
+            }
+        } else {
+            log.warn("Transaction not found for ID: {}", orderId);
+            return false;
+        }
+        return false;
     }
 
 
