@@ -28,11 +28,6 @@ public class SubscriptionController {
         }
     }
 
-    @GetMapping
-    public List<SubscriptionPlan> getAllSubscriptionPlans() {
-        return subscriptionPlanService.getAllSubscriptionPlans();
-    }
-
     @PutMapping("/update/{id}")
     public ResponseEntity<SubscriptionPlan> updateSubscriptionPlan(@PathVariable Long id, @RequestBody SubscriptionPlanRequest request) {
         try {
