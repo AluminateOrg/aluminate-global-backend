@@ -21,7 +21,7 @@ services:
     networks:
       - aluminate-network
 
-  backend:
+  global-backend:
     build:
       context: ./aluminate-global-backend
       dockerfile: Dockerfile
@@ -66,7 +66,7 @@ services:
     ports:
       - "${WEBSITE_FRONTEND_PORT}:${WEBSITE_FRONTEND_PORT}"
     depends_on:
-      - backend
+      - global-backend
     networks:
       - aluminate-network
     
@@ -83,7 +83,7 @@ services:
     ports:
       - "${ADMIN_FRONTEND_PORT}:${ADMIN_FRONTEND_PORT}"
     depends_on:
-      - backend
+      - global-backend
     networks:
       - aluminate-network
 

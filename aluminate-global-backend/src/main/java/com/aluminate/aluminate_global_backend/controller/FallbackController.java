@@ -2,6 +2,7 @@ package com.aluminate.aluminate_global_backend.controller;
 
 import com.aluminate.aluminate_global_backend.config.util.RSAEncryptionUtil;
 import com.aluminate.aluminate_global_backend.dto.TestRequest;
+import com.aluminate.aluminate_global_backend.service.dockerSeervice.DockerService;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -22,6 +23,7 @@ public class FallbackController {
     private String globalPrivateKeyENV;
 
     private PrivateKey globalPrivateKey;
+    private final DockerService dockerService = new DockerService();
 
 
     public FallbackController(PasswordEncoder passwordEncoder) {
@@ -52,6 +54,18 @@ public class FallbackController {
             return ResponseEntity.status(500).body("Decryption error: " + e.getMessage());
         }
 
+    }
+
+    @GetMapping("/create-org/{orgId}")
+    public ResponseEntity<String> createOrg(@PathVariable String orgId) {
+        try {
+            dockerService.createOrgContainer(orgId);
+            return ResponseEntity.ok("✅ Container started for org: " + orgId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError()
+                    .body("❌ Error starting container: " + e.getMessage());
+        }
     }
 }
 
