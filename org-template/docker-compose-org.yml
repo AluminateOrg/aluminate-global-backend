@@ -49,7 +49,7 @@ services:
   # -------------------------------------------------------------------
   backend:
     build:
-      context: ../aluminate/aluminate-organization-backend
+      context: /app/aluminate/aluminate-organization-backend
       dockerfile: Dockerfile
     depends_on:
       - database
@@ -67,7 +67,7 @@ services:
       ORG_SLUG: ${ORG_SLUG}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      API_PREFIX: "/${API_PREFIX}"
+      API_PREFIX: "${API_PREFIX}"
       API_PREFIX_GLOBAL: ${API_PREFIX_GLOBAL}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       SPRING_ORGANIZATION_PRIVATE_KEY: ${SPRING_ORGANIZATION_PRIVATE_KEY}
@@ -100,7 +100,7 @@ services:
   # -------------------------------------------------------------------
   frontend:
     build:
-      context: ../aluminate/aluminate-organization-frontend
+      context: /app/aluminate/aluminate-organization-frontend
       dockerfile: Dockerfile
       args:
         # Pass ORG_SLUG as a build argument

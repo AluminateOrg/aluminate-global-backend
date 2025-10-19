@@ -56,6 +56,8 @@ services:
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock
     - ./org-template:/app/org-template
+    - ../aluminate/aluminate-organization-backend:/app/aluminate/aluminate-organization-backend:ro
+    - ../aluminate/aluminate-organization-frontend:/app/aluminate/aluminate-organization-frontend:ro
 
   website-frontend:
     build:

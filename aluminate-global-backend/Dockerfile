@@ -14,10 +14,13 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jdk AS runtime
 WORKDIR /app
 
-# Install Docker CLI and bash
+
+# Install docker + docker compose plugin
 RUN apt-get update && \
-    apt-get install -y docker.io bash && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y docker.io bash curl && \
+    curl -SL https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose && \
+    chmod +x /usr/local/bin/docker-compose
+
 
 # Copy the built JAR file from the builder stage
 COPY --from=builder /app/target/*.jar app.jar

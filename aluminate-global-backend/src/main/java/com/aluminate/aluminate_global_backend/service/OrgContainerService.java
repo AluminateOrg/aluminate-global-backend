@@ -14,7 +14,7 @@ public class OrgContainerService {
         try {
             // Set up environment variables
             ProcessBuilder processBuilder = new ProcessBuilder(
-                    "docker", "compose",
+                    "docker-compose",
                     "-f", ORG_TEMPLATE_PATH + "/docker-compose-org.yml",
                     "-p", orgSlug,
                     "up", "--build", "-d"
