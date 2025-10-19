@@ -45,6 +45,7 @@ services:
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT}
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
+      ORG_TEMPLATE_PATH: /app/org-template
     ports:
       - "${GLOBAL_PORT}:${GLOBAL_PORT}"
     depends_on:
@@ -52,6 +53,9 @@ services:
       - redis
     networks:
       - aluminate-network
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./org-template:/app/org-template
 
   website-frontend:
     build:

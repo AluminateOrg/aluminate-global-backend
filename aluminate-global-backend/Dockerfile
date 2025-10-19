@@ -14,8 +14,16 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jdk AS runtime
 WORKDIR /app
 
+# Install Docker CLI and bash
+RUN apt-get update && \
+    apt-get install -y docker.io bash && \
+    rm -rf /var/lib/apt/lists/*
+
 # Copy the built JAR file from the builder stage
 COPY --from=builder /app/target/*.jar app.jar
+
+# Mount org-template directory inside container (for docker-compose)
+VOLUME /app/org-template
 
 # Set environment variables
 ARG GLOBAL_PORT

@@ -2,7 +2,7 @@ package com.aluminate.aluminate_global_backend.controller;
 
 import com.aluminate.aluminate_global_backend.config.util.RSAEncryptionUtil;
 import com.aluminate.aluminate_global_backend.dto.TestRequest;
-import com.aluminate.aluminate_global_backend.service.dockerSeervice.DockerService;
+import com.aluminate.aluminate_global_backend.service.OrgContainerService;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -23,11 +23,12 @@ public class FallbackController {
     private String globalPrivateKeyENV;
 
     private PrivateKey globalPrivateKey;
-    private final DockerService dockerService = new DockerService();
 
+    private final OrgContainerService orgContainerService;
 
     public FallbackController(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
+        this.orgContainerService = new OrgContainerService();
     }
     @PostConstruct
     public void initKeys() throws Exception {
@@ -56,16 +57,11 @@ public class FallbackController {
 
     }
 
-    @GetMapping("/create-org/{orgId}")
-    public ResponseEntity<String> createOrg(@PathVariable String orgId) {
-        try {
-            dockerService.createOrgContainer(orgId);
-            return ResponseEntity.ok("✅ Container started for org: " + orgId);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body("❌ Error starting container: " + e.getMessage());
-        }
+    @PostMapping("/create")
+    public String createOrg(@RequestParam String orgSlug) {
+        boolean success = orgContainerService.createOrgContainer(orgSlug);
+        return success ? "Organization container created successfully." :
+                "Failed to create organization container.";
     }
 }
 

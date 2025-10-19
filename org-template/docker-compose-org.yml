@@ -49,7 +49,7 @@ services:
   # -------------------------------------------------------------------
   backend:
     build:
-      context: ./aluminate-organization-backend
+      context: ../aluminate/aluminate-organization-backend
       dockerfile: Dockerfile
     depends_on:
       - database
@@ -100,7 +100,7 @@ services:
   # -------------------------------------------------------------------
   frontend:
     build:
-      context: ./aluminate-organization-frontend
+      context: ../aluminate/aluminate-organization-frontend
       dockerfile: Dockerfile
       args:
         # Pass ORG_SLUG as a build argument
