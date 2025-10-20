@@ -21,7 +21,7 @@ services:
     networks:
       - aluminate-network
 
-  backend:
+  global-backend:
     build:
       context: ./aluminate-global-backend
       dockerfile: Dockerfile
@@ -45,6 +45,7 @@ services:
       SPRING_MAIL_PORT: ${SPRING_MAIL_PORT}
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
+      ORG_TEMPLATE_PATH: /app/org-template
     ports:
       - "${GLOBAL_PORT}:${GLOBAL_PORT}"
     depends_on:
@@ -52,6 +53,11 @@ services:
       - redis
     networks:
       - aluminate-network
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./org-template:/app/org-template
+    - ../aluminate/aluminate-organization-backend:/app/aluminate/aluminate-organization-backend:ro
+    - ../aluminate/aluminate-organization-frontend:/app/aluminate/aluminate-organization-frontend:ro
 
   website-frontend:
     build:
@@ -66,7 +72,7 @@ services:
     ports:
       - "${WEBSITE_FRONTEND_PORT}:${WEBSITE_FRONTEND_PORT}"
     depends_on:
-      - backend
+      - global-backend
     networks:
       - aluminate-network
     
@@ -83,7 +89,7 @@ services:
     ports:
       - "${ADMIN_FRONTEND_PORT}:${ADMIN_FRONTEND_PORT}"
     depends_on:
-      - backend
+      - global-backend
     networks:
       - aluminate-network
 

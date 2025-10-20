@@ -2,6 +2,7 @@ package com.aluminate.aluminate_global_backend.controller;
 
 import com.aluminate.aluminate_global_backend.config.util.RSAEncryptionUtil;
 import com.aluminate.aluminate_global_backend.dto.TestRequest;
+import com.aluminate.aluminate_global_backend.service.OrgContainerService;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -23,9 +24,11 @@ public class FallbackController {
 
     private PrivateKey globalPrivateKey;
 
+    private final OrgContainerService orgContainerService;
 
     public FallbackController(PasswordEncoder passwordEncoder) {
         this.passwordEncoder = passwordEncoder;
+        this.orgContainerService = new OrgContainerService();
     }
     @PostConstruct
     public void initKeys() throws Exception {
@@ -52,6 +55,13 @@ public class FallbackController {
             return ResponseEntity.status(500).body("Decryption error: " + e.getMessage());
         }
 
+    }
+
+    @PostMapping("/create")
+    public String createOrg(@RequestParam String orgSlug) {
+        boolean success = orgContainerService.createOrgContainer(orgSlug);
+        return success ? "Organization container created successfully." :
+                "Failed to create organization container.";
     }
 }
 
