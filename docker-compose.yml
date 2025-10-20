@@ -1,3 +1,5 @@
+version: '3.9'
+
 services:
   postgres:
     image: postgres:15
@@ -12,59 +14,82 @@ services:
     networks:
       - aluminate-network
 
-  backend:
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    networks:
+      - aluminate-network
+
+  global-backend:
     build:
       context: ./aluminate-global-backend
-      dockerfile: Dockerfile  # Using development Dockerfile
+      dockerfile: Dockerfile
+      args:
+        GLOBAL_PORT: ${GLOBAL_PORT}
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      WEBSITE_FRONTEND_URL: http://localhost:3000
-      ADMIN_FRONTEND_URL: http://localhost:3001
       SPRING_REDIS_HOST: ${SPRING_REDIS_HOST}
       SPRING_REDIS_PORT: ${SPRING_REDIS_PORT}
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
+      KAFKA_TOPIC_GLOBAL_EVENTS: ${KAFKA_TOPIC_GLOBAL_EVENTS}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_GLOBAL_PRIVATE_KEY: ${SPRING_GLOBAL_PRIVATE_KEY}
+      SPRING_ORGANIZATION_PUBLIC_KEY: ${SPRING_ORGANIZATION_PUBLIC_KEY}
+      PAYHERE_MERCHANT_SECRET: ${PAYHERE_MERCHANT_SECRET}
+      PAYHERE_MERCHANT_ID: ${PAYHERE_MERCHANT_ID}
+      API_PREFIX: ${API_PREFIX}
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
+      ORG_TEMPLATE_PATH: /app/org-template
     ports:
-      - "8080:8080"  # Application port
-      - "5005:5005"  # Debug port
-    volumes:
-      - ./aluminate-global-backend:/app
-      - ~/.m2:/root/.m2  # Cache Maven dependencies
+      - "${GLOBAL_PORT}:${GLOBAL_PORT}"
     depends_on:
       - postgres
-      - redis	
+      - redis
     networks:
       - aluminate-network
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock
+    - ./org-template:/app/org-template
+    - ../aluminate/aluminate-organization-backend:/app/aluminate/aluminate-organization-backend:ro
+    - ../aluminate/aluminate-organization-frontend:/app/aluminate/aluminate-organization-frontend:ro
 
   website-frontend:
     build:
       context: ./aluminate-website-frontend
       dockerfile: Dockerfile
+      args:
+        WEBSITE_FRONTEND_PORT: ${WEBSITE_FRONTEND_PORT}
+        NEXT_PUBLIC_BACKEND_URL: "${DOMAIN_LINK}:${GLOBAL_PORT}"
+        NEXT_PUBLIC_API_PREFIX: "${API_PREFIX}"
+        NEXT_PUBLIC_GLOBAL_PUBLIC_KEY: "${NEXT_PUBLIC_GLOBAL_PUBLIC_KEY}"
+        NEXT_PUBLIC_PAYHERE_MERCHANT_ID: "${PAYHERE_MERCHANT_ID}"
     ports:
-      - "3000:3000"
-    environment:
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:8080
-    volumes:
-      - ./aluminate-website-frontend:/app
-      - /app/node_modules
+      - "${WEBSITE_FRONTEND_PORT}:${WEBSITE_FRONTEND_PORT}"
     depends_on:
-      - backend
+      - global-backend
     networks:
       - aluminate-network
+    
 
   admin-frontend:
     build:
       context: ./aluminate-admin-frontend
       dockerfile: Dockerfile
+      args:
+        ADMIN_FRONTEND_PORT: ${ADMIN_FRONTEND_PORT}
+        NEXT_PUBLIC_BACKEND_URL: "${DOMAIN_LINK}:${GLOBAL_PORT}"
+        NEXT_PUBLIC_API_PREFIX: "${API_PREFIX}"
+        NEXT_PUBLIC_GLOBAL_PUBLIC_KEY: ${NEXT_PUBLIC_GLOBAL_PUBLIC_KEY}
     ports:
-      - "3001:3000"
-    environment:
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:8080
-    volumes:
-      - ./aluminate-admin-frontend:/app
-      - /app/node_modules
+      - "${ADMIN_FRONTEND_PORT}:${ADMIN_FRONTEND_PORT}"
     depends_on:
-      - backend
+      - global-backend
     networks:
       - aluminate-network
 

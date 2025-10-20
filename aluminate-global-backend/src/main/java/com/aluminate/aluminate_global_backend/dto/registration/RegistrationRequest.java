@@ -16,14 +16,12 @@ public class RegistrationRequest {
     @NotBlank(message = "cannot be blank")
     private String adminFullName;
 
-    @NotBlank(message = "cannot be blank")
-    private String email;
+
 
     @NotBlank(message = "cannot be blank")
     private String phoneNumber;
 
-    @NotBlank(message = "cannot be blank")
-    private String password;
+
 
     @NotBlank(message = "cannot be blank")
     private String nationalId;

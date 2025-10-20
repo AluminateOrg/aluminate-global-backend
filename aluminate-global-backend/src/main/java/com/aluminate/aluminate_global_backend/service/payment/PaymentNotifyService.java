@@ -7,12 +7,18 @@ import com.aluminate.aluminate_global_backend.repository.AdminRepository;
 import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
 import com.aluminate.aluminate_global_backend.repository.SubscriptionPlanRepository;
 import com.aluminate.aluminate_global_backend.repository.TransactionRepository;
+import com.aluminate.aluminate_global_backend.service.OrgContainerAsyncService;
+import com.aluminate.aluminate_global_backend.service.OrgContainerService;
+import com.aluminate.aluminate_global_backend.service.kafka.EventPublisherService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
 import java.security.MessageDigest;
@@ -20,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Service
+@EnableAsync
 public class PaymentNotifyService {
     @Value("${payhere.merchant_secret}")
     private String merchantSecret;
@@ -30,18 +37,51 @@ public class PaymentNotifyService {
     private final OrganizationRepository organizationRepository;
     private final AdminRepository adminRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
+    private final EventPublisherService eventPublisherService;
+
+    private final OrgContainerService orgContainerService;
+    private final OrgContainerAsyncService orgContainerAsyncService;
+
 
     private final Logger log = LoggerFactory.getLogger(PaymentNotifyService.class);
 
     public PaymentNotifyService(TransactionRepository transactionRepository,
                                 OrganizationRepository organizationRepository,
                                 AdminRepository adminRepository,
-                                SubscriptionPlanRepository subscriptionPlanRepository
+                                SubscriptionPlanRepository subscriptionPlanRepository,
+                                EventPublisherService eventPublisherService,
+                                OrgContainerAsyncService orgContainerAsyncService
     ) {
         this.transactionRepository = transactionRepository;
         this.organizationRepository = organizationRepository;
         this.adminRepository = adminRepository;
         this.subscriptionPlanRepository = subscriptionPlanRepository;
+        this.eventPublisherService = eventPublisherService;
+        this.orgContainerService = new OrgContainerService();
+        this.orgContainerAsyncService = orgContainerAsyncService;
+    }
+
+
+
+    @Transactional
+    public boolean changeOrgStatus(@RequestParam Long orderId) {
+        Optional<Transaction> optTran = transactionRepository.findById(orderId);
+        if (optTran.isPresent()) {
+            Long orgId = optTran.get().getOrganization().getId();
+            Optional<Organization> optOrg = organizationRepository.findById(orgId);
+            if (optOrg.isPresent()) {
+                Organization org = optOrg.get();
+                org.setStatus(Status.BUILDING);
+                organizationRepository.save(org);
+                orgContainerAsyncService.buildOrgContainerAsync(orgId);
+                return true;
+            }
+
+        } else {
+            log.warn("Transaction not found for ID: {}", orderId);
+            return false;
+        }
+        return false;
     }
 
 
@@ -74,8 +114,9 @@ public class PaymentNotifyService {
 
                         transactionRepository.save(transaction);
                         log.info("Transaction saved! Order ID: {}", request.getOrder_id());
-                        //update plan details in organization
-//                        Optional<Organization> OptionalOrganization = organizationRepository.findById(transaction
+                        // Publish event to Kafka or any other message broker if needed
+
+
 
                     } else {
                         log.warn("Transaction not found for ID: {}", request.getOrder_id());

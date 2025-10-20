@@ -1,6 +1,8 @@
 [submodule "aluminate-website-frontend"]
 	path = aluminate-website-frontend
 	url = https://github.com/AluminateOrg/aluminate-website-frontend.git
+	branch = production
 [submodule "aluminate-admin-frontend"]
 	path = aluminate-admin-frontend
 	url = https://github.com/AluminateOrg/aluminate-admin-frontend.git
+	branch = production

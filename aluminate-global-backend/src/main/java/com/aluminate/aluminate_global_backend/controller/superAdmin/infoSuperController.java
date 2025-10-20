@@ -31,4 +31,7 @@ public class infoSuperController {
         return ResponseEntity.ok(body);
     }
 
+    //create a super admin account
+
+
 }
