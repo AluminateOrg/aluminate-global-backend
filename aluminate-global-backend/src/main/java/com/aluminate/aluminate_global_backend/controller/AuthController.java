@@ -21,6 +21,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
@@ -62,11 +63,14 @@ public class AuthController {
     private WebClient.Builder webClientBuilder;
 
 
+
+
     public AuthController(AuthService authService, CsrfTokenService csrfTokenService, EmailService emailService, OtpService otpService) {
         this.emailService = emailService;
         this.authService = authService;
         this.csrfTokenService = csrfTokenService;
         this.otpService = otpService;
+
     }
     @PostConstruct
     public void initKeys() throws Exception {
@@ -84,6 +88,7 @@ public class AuthController {
                     EncryptedRequest.getPayload(),
                     globalPrivateKey
             );
+            logger.info("decrypted: " + decrypted);
             DecryptedCredentials credentials = objectMapper.readValue(
                     decrypted,
                     DecryptedCredentials.class
@@ -211,11 +216,20 @@ public class AuthController {
 
     @GetMapping("/send-otp")
     public ResponseEntity<ResponseWrapper<String>> sendOtp(@RequestParam String email) throws MessagingException, IOException {
-        String otp = String.format("%06d", new Random().nextInt(999999));
-        emailService.sendOtpMail(email, otp);
-        otpService.saveOtp(email, otp);
-        ResponseWrapper<String> body = new ResponseWrapper<>(true, "OTP sent successfully", otp);
-        return ResponseEntity.ok(body);
+        try{
+            String otp = String.format("%06d", new Random().nextInt(999999));
+            logger.info("Generated OTP: " + otp + " for email: " + email);
+            emailService.sendOtpMail(email, otp);
+            logger.info("OTP email sent to: " + email);
+            otpService.saveOtp(email, otp);
+            ResponseWrapper<String> body = new ResponseWrapper<>(true, "OTP sent successfully", otp);
+            return ResponseEntity.ok(body);
+        } catch (Exception e){
+            logger.warning("Error sending OTP to " + email + ": " + e.getMessage());
+            ResponseWrapper<String> body = new ResponseWrapper<>(false, "Failed to send OTP", null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+        }
+
     }
 
     @PostMapping("/verify-otp")
