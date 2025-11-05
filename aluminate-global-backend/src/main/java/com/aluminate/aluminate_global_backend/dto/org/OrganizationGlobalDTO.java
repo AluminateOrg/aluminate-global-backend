@@ -9,6 +9,7 @@ import lombok.*;
 @Getter
 @Setter
 public class OrganizationGlobalDTO {
+    private Long id;
     private String organizationName;
     private int maxMemberCount;
     private int currentMemberCount;

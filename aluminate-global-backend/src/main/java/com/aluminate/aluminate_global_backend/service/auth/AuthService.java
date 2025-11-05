@@ -243,6 +243,7 @@ public class AuthService {
                 admin.getPhone()
         );
         OrganizationGlobalDTO orgDTO = new OrganizationGlobalDTO(
+                org.getId(),
                 org.getOrganizationName(),
                 org.getMaxMemberCount(),
                 org.getCurrentMemberCount(),
