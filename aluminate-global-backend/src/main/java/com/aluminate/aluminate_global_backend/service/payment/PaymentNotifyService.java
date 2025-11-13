@@ -2,11 +2,9 @@ package com.aluminate.aluminate_global_backend.service.payment;
 
 import com.aluminate.aluminate_global_backend.dto.payment.PaymentNotifyRequest;
 
+import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.OrgTicketdto;
 import com.aluminate.aluminate_global_backend.model.*;
-import com.aluminate.aluminate_global_backend.repository.AdminRepository;
-import com.aluminate.aluminate_global_backend.repository.OrganizationRepository;
-import com.aluminate.aluminate_global_backend.repository.SubscriptionPlanRepository;
-import com.aluminate.aluminate_global_backend.repository.TransactionRepository;
+import com.aluminate.aluminate_global_backend.repository.*;
 import com.aluminate.aluminate_global_backend.service.OrgContainerAsyncService;
 import com.aluminate.aluminate_global_backend.service.OrgContainerService;
 import com.aluminate.aluminate_global_backend.service.kafka.EventPublisherService;
@@ -37,6 +35,7 @@ public class PaymentNotifyService {
     private final OrganizationRepository organizationRepository;
     private final AdminRepository adminRepository;
     private final SubscriptionPlanRepository subscriptionPlanRepository;
+    private final OrgTicketRepository orgTicketRepository;
     private final EventPublisherService eventPublisherService;
 
     private final OrgContainerService orgContainerService;
@@ -50,7 +49,8 @@ public class PaymentNotifyService {
                                 AdminRepository adminRepository,
                                 SubscriptionPlanRepository subscriptionPlanRepository,
                                 EventPublisherService eventPublisherService,
-                                OrgContainerAsyncService orgContainerAsyncService
+                                OrgContainerAsyncService orgContainerAsyncService,
+                                OrgTicketRepository orgTicketRepository
     ) {
         this.transactionRepository = transactionRepository;
         this.organizationRepository = organizationRepository;
@@ -59,6 +59,7 @@ public class PaymentNotifyService {
         this.eventPublisherService = eventPublisherService;
         this.orgContainerService = new OrgContainerService();
         this.orgContainerAsyncService = orgContainerAsyncService;
+        this.orgTicketRepository = orgTicketRepository;
     }
 
 
@@ -71,9 +72,16 @@ public class PaymentNotifyService {
             Optional<Organization> optOrg = organizationRepository.findById(orgId);
             if (optOrg.isPresent()) {
                 Organization org = optOrg.get();
-                org.setStatus(Status.BUILDING);
+                //production
+//                org.setStatus(Status.BUILDING);
+//                organizationRepository.save(org);
+//                orgContainerAsyncService.buildOrgContainerAsync(orgId);
+
+                //dev
+                org.setStatus(Status.ACTIVE);
                 organizationRepository.save(org);
-                orgContainerAsyncService.buildOrgContainerAsync(orgId);
+                
+
                 return true;
             }
 
@@ -215,5 +223,37 @@ public class PaymentNotifyService {
             sb.append(String.format("%02x", b & 0xff));
         }
         return sb.toString();
+    }
+
+    public void syncOrgTransactionTickets(OrgTicketdto orgTicketdto) {
+        try{
+            //save the record in the table OrgTicket
+            log.info("Syncing Org Ticket: {}", orgTicketdto);
+
+            //retrive organization
+            Optional<Organization> optionalOrganization = organizationRepository.findById(orgTicketdto.getOrganizationId());
+            if(optionalOrganization.isEmpty()){
+                log.error("Organization not found for ID: {}", orgTicketdto.getOrganizationId());
+                return;
+            }
+            Organization organization = optionalOrganization.get();
+
+            //create OrgTicket object
+            OrgTicket orgTicket = new OrgTicket();
+            orgTicket.setAmount(BigDecimal.valueOf(orgTicketdto.getAmount()));
+            orgTicket.setStatus(TransactionStatus.valueOf(orgTicketdto.getStatus()));
+            orgTicket.setOrganization(organization);
+            orgTicket.setKey(orgTicketdto.getKey());
+
+            //save object in repository
+            orgTicketRepository.save(orgTicket);
+            log.info("Org Ticket synced successfully: {}", orgTicketdto);
+            return;
+
+
+        } catch (Exception e) {
+            log.error("Error while syncing PayHere payment notification", e);
+            throw new RuntimeException(e);
+        }
     }
 }
