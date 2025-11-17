@@ -4,16 +4,14 @@ package com.aluminate.aluminate_global_backend.controller;
 import com.aluminate.aluminate_global_backend.config.ResponseWrapper;
 import com.aluminate.aluminate_global_backend.config.util.RSAEncryptionUtil;
 import com.aluminate.aluminate_global_backend.dto.payment.PaymentNotifyRequest;
-import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.DecryptedTicket;
-import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.EncryptedTicket;
-import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.KeyAndAmount;
+import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.DecryptedTicketKey;
+import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.EncryptedTicketKey;
 import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.OrgTicketdto;
 import com.aluminate.aluminate_global_backend.model.TransactionStatus;
 import com.aluminate.aluminate_global_backend.service.payment.PaymentNotifyService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -84,30 +82,33 @@ public class PublicPaymentController {
     }
 
     @PostMapping("/syncOrgTransactionTickets")
-    public ResponseEntity<ResponseWrapper<Boolean>> syncOrgTransactionTickets(@RequestBody EncryptedTicket encryptedTicket, HttpServletResponse httpResponse) {
+    public ResponseEntity<ResponseWrapper<Boolean>> syncOrgTransactionTickets(@RequestBody EncryptedTicketKey encryptedTicket, HttpServletResponse httpResponse) {
         try {
+            logger.info("Received request to synchronize organization transaction tickets");
             String decrypted = RSAEncryptionUtil.decrypt(
-                    encryptedTicket.getPayload(),
+                    encryptedTicket.getEncryptedTicketKey(),
                     globalPrivateKey
 
             );
-            DecryptedTicket decryptedTicket = objectMapper.readValue(decrypted, DecryptedTicket.class);
-
-            //get decrypted key & value
-            String decryptedKeyAndValue = RSAEncryptionUtil.decrypt(
-                    decryptedTicket.getKeyAndAmountEncrypted(),
-                    globalPrivateKey
-            );
-
-            //map object
-            KeyAndAmount keyAndValue = objectMapper.readValue(decryptedKeyAndValue, KeyAndAmount.class);
-
+            DecryptedTicketKey decryptedTicketKey = objectMapper.readValue(decrypted, DecryptedTicketKey.class);
+            logger.info("Received EncryptedTicketKey: " + decryptedTicketKey);
             //make the OrgTicketdto
             OrgTicketdto orgTicket = new OrgTicketdto();
-            orgTicket.setKey(keyAndValue.getKey());
-            orgTicket.setAmount(keyAndValue.getAmount().doubleValue());
-            orgTicket.setOrganizationId(decryptedTicket.getOrganizationId());
+            orgTicket.setKey(decryptedTicketKey.getKey().toString());
+            orgTicket.setAmount(encryptedTicket.getAmount().doubleValue());
+            orgTicket.setOrganizationId(encryptedTicket.getOrganizationId());
             orgTicket.setStatus(String.valueOf(TransactionStatus.PENDING));
+
+            //check key validity
+            //get admin email from key orgId
+            boolean isValidKey = paymentNotifyService.validateTransactionTicketKey(
+                    orgTicket.getKey()
+            );
+            if (!isValidKey) {
+                logger.error("Invalid transaction ticket key");
+                return ResponseEntity.badRequest()
+                        .body(new ResponseWrapper<>(false, "Invalid transaction ticket key", false));
+            }
 
 
             //call service to sync

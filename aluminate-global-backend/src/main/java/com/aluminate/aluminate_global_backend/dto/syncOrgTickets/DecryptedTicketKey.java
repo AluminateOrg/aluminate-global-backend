@@ -3,10 +3,8 @@ package com.aluminate.aluminate_global_backend.dto.syncOrgTickets;
 import lombok.Data;
 
 @Data
-public class DecryptedTicket {
+public class DecryptedTicketKey {
     //encrypted ticket key & amount
-    private String keyAndAmountEncrypted;
+    private String key;
 
-    //rest
-    private Long organizationId;
 }

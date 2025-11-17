@@ -256,4 +256,42 @@ public class PaymentNotifyService {
             throw new RuntimeException(e);
         }
     }
+
+    public boolean validateTransactionTicketKey(String ticketKey){
+
+        try{
+            log.info("Validating Ticket Key: {}", ticketKey);
+            //get ticket chars from beginning to the first '-'
+            String orgId = ticketKey.split("-")[0];
+            Optional<Organization> optionalOrganization = organizationRepository.findById(Long.valueOf(orgId));
+
+            if(optionalOrganization.isEmpty()){
+                log.error("Organization not found for ID: {}", orgId);
+                return false;
+            }
+            Organization organization = optionalOrganization.get();
+
+            //get admin
+            Admin admin = organization.getAdmin();
+
+            //get first 3 chars of admin email
+            String emailPrefix = admin.getEmail().substring(0, 3).toUpperCase();
+
+            //from ticket key get chars between first '-' and second '-'
+            String ticketEmailPrefix = ticketKey.split("-")[1];
+            if(!emailPrefix.equals(ticketEmailPrefix)){
+                log.error("Ticket key email prefix does not match for ticket key: {}", ticketKey);
+                return false;
+            }
+            log.info("Ticket key validated successfully for ticket key: {}", ticketKey);
+            return true;
+
+
+        } catch (Exception e) {
+            log.error("Error while validating PayHere payment notification", e);
+
+            throw new RuntimeException(e);
+        }
+
+    }
 }

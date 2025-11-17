@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Builder
 @NoArgsConstructor
@@ -23,13 +24,16 @@ public class OrgTicket {
     private TransactionStatus status = TransactionStatus.PENDING;
 
     //organization
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "organization_id", foreignKey = @ForeignKey(name = "fk_org_ticket_organization",
             foreignKeyDefinition = "FOREIGN KEY (organization_id) REFERENCES organization(id) ON UPDATE CASCADE ON DELETE CASCADE"))
     private Organization organization;
 
 
     private String key;
+
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
 
 
