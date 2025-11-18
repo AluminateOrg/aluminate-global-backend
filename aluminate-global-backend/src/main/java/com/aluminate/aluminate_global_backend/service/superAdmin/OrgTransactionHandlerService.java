@@ -1,5 +1,8 @@
 package com.aluminate.aluminate_global_backend.service.superAdmin;
 
+import com.aluminate.aluminate_global_backend.config.ResponseWrapper;
+import com.aluminate.aluminate_global_backend.config.util.RSAEncryptionUtil;
+import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.OrgMainTicketAck;
 import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.OrgTicketProjection;
 import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.OrgTicketResponseDTO;
 import com.aluminate.aluminate_global_backend.model.OrgPayout;
@@ -8,13 +11,18 @@ import com.aluminate.aluminate_global_backend.model.PaymentCategory;
 import com.aluminate.aluminate_global_backend.model.TransactionStatus;
 import com.aluminate.aluminate_global_backend.repository.OrgPayoutRepository;
 import com.aluminate.aluminate_global_backend.repository.OrgTicketRepository;
+import com.aluminate.aluminate_global_backend.service.orgClient.OrgRequestService;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.security.PublicKey;
 import java.time.LocalDateTime;
 
 @Service
@@ -23,16 +31,27 @@ public class OrgTransactionHandlerService {
     private OrgTicketRepository  orgTicketRepository;
     private OrgPayoutRepository orgPayoutRepository;
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    @Value("${encryption.organization.public-key}")
+    private String organizationPublicKeyENV;
+    private PublicKey organizationPublicKey;
+    private final OrgRequestService orgRequestService;
+
 
     public OrgTransactionHandlerService(
             OrgTicketRepository orgTicketRepository,
-            OrgPayoutRepository orgPayoutRepository
+            OrgPayoutRepository orgPayoutRepository,
+            OrgRequestService orgRequestService
 
     ) {
         this.orgTicketRepository = orgTicketRepository;
         this.orgPayoutRepository = orgPayoutRepository;
+        this.orgRequestService = orgRequestService;
     }
 
+    @PostConstruct
+    public void initKeys() throws Exception {
+        this.organizationPublicKey = RSAEncryptionUtil.publicKeyFromPem(organizationPublicKeyENV);
+    }
     public Page<OrgTicketResponseDTO> getTickets(int offset,
                                       int limit,
                                       String search,
@@ -100,6 +119,7 @@ public class OrgTransactionHandlerService {
             OrgTicket ticket = orgTicketRepository.findById(ticketId)
                     .orElseThrow(() -> new RuntimeException("Ticket not found with ID: " + ticketId));
 
+
             ticket.setStatus(TransactionStatus.PAID);
             orgTicketRepository.save(ticket);
 
@@ -112,6 +132,11 @@ public class OrgTransactionHandlerService {
 
             //save
             orgPayoutRepository.save(orgPayout);
+            //send to server
+            Boolean isSent = sendTicketToOrgServer(ticket, TransactionStatus.PAID);
+            if(!isSent) {
+                throw new RuntimeException("Failed to send ticket to organization server");
+            }
 
 
             logger.info("Ticket with ID: {} marked as PAID & saved in org payouts", ticketId);
@@ -125,13 +150,46 @@ public class OrgTransactionHandlerService {
             logger.info("rejectTicket with ticketId: {}", ticketId);
             OrgTicket ticket = orgTicketRepository.findById(ticketId)
                     .orElseThrow(() -> new RuntimeException("Ticket not found with ID: " + ticketId));
-
             ticket.setStatus(TransactionStatus.REJECTED);
             orgTicketRepository.save(ticket);
+
+            //send to server
+            Boolean isSent = sendTicketToOrgServer(ticket, TransactionStatus.REJECTED);
+            if(!isSent) {
+                throw new RuntimeException("Failed to send ticket to organization server");
+            }
 
             logger.info("Ticket with ID: {} marked as REJECTED", ticketId);
         } catch (Exception ex) {
             throw new RuntimeException("Failed to reject ticket: " + ex.getMessage(), ex);
         }
+    }
+
+    //function to send ticket to org server
+    public Boolean sendTicketToOrgServer(OrgTicket ticket,TransactionStatus status) {
+        try{
+            //encrypt ticket key
+            String encryptedTicketKey = RSAEncryptionUtil.encrypt(
+                    ticket.getKey(),
+                    organizationPublicKey
+            );
+
+            //build OrgMainTicketAck
+            OrgMainTicketAck orgMainTicketAck = OrgMainTicketAck.builder()
+                    .encryptedTicketKey(encryptedTicketKey)
+                    .amount(ticket.getAmount())
+                    .organizationId(ticket.getOrganization().getId())
+                    .transactionStatus(status)
+                    .build();
+
+            //send ticket to org server
+            return orgRequestService.send(
+                   ticket.getOrganization().getId(),
+                   orgMainTicketAck
+           );
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
     }
 }

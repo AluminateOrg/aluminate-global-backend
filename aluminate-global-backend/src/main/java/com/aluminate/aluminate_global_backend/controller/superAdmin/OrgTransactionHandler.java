@@ -1,11 +1,14 @@
 package com.aluminate.aluminate_global_backend.controller.superAdmin;
 
 import com.aluminate.aluminate_global_backend.config.ResponseWrapper;
+import com.aluminate.aluminate_global_backend.config.util.RSAEncryptionUtil;
 import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.OrgTicketResponseDTO;
 import com.aluminate.aluminate_global_backend.dto.syncOrgTickets.TicketPageResponse;
 import com.aluminate.aluminate_global_backend.model.OrgTicket;
 import com.aluminate.aluminate_global_backend.model.TransactionStatus;
 import com.aluminate.aluminate_global_backend.service.superAdmin.OrgTransactionHandlerService;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.PublicKey;
+
 
 @RestController
 @RequestMapping("${api.prefix}/superAdmin/orgTransaction")
@@ -23,11 +28,13 @@ public class OrgTransactionHandler {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final OrgTransactionHandlerService ticketService;
 
+
     public OrgTransactionHandler(OrgTransactionHandlerService ticketService) {
         this.ticketService = ticketService;
     }
-    //general organization transaction handling endpoints will be defined here
 
+
+    //general organization transaction handling endpoints will be defined here
     @GetMapping("/getTransactionTickets")
     public ResponseEntity<ResponseWrapper<TicketPageResponse>> getTransactionTickets(
             @RequestParam int offset,
