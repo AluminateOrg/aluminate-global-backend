@@ -48,4 +48,14 @@ public class SubscriptionController {
         }
     }
 
+    @GetMapping
+    public ResponseEntity<List<SubscriptionPlan>> getSubscriptionPlans() {
+        try {
+            List<SubscriptionPlan> subscriptionPlans = subscriptionPlanService.getAllSubscriptionPlans();
+            return ResponseEntity.ok(subscriptionPlans);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
