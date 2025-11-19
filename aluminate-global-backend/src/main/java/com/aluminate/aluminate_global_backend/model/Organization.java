@@ -37,6 +37,14 @@ public class Organization {
     private LocalDate nextRenewalDate;
     private String subdomain;
     private String portalUrl;
+
+    @Builder.Default
+    private String serverUrl = "http://localhost:8098";
+
+    @Builder.Default
+    private String apiPrefix = "/api/v1/portal";
+
+
     private int maxMemberCount;
     private int currentMemberCount;
 
