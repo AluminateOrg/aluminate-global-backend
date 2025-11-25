@@ -26,10 +26,7 @@ public class FeatureServices {
         features.setName(featureCreateReq.getName());
         featuresRepository.save(features);
 
-        return (FeatureResp) featuresRepository.findAll()
-                .stream()
-                .map(this::toResp)
-                .collect(Collectors.toList());
+        return toResp(features);
     }
 
     private FeatureResp toResp(Features f) {
@@ -44,6 +41,15 @@ public class FeatureServices {
                 .stream()
                 .map(this::toResp)
                 .collect(Collectors.toList());
+    }
+
+    public boolean DeleteFeature(Long id) {
+        if (id == null) throw new IllegalArgumentException("Feature id cannot be null");
+        if (!featuresRepository.existsById(id)) {
+            return false;
+        }
+        featuresRepository.deleteById(id);
+        return true;
     }
 }
 
