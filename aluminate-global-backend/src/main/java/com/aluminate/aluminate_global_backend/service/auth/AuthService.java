@@ -65,24 +65,24 @@ public class AuthService {
 
         ResponseCookie jwtCookie = ResponseCookie.from("jwt", token)
                 .httpOnly(true)
-                .secure(false)
-                .sameSite("Strict")
+                .secure(true)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
 
         ResponseCookie csrfCookie = ResponseCookie.from("csrf-token", csrfToken)
                 .httpOnly(false)
-                .secure(false)
-                .sameSite("Strict")
+                .secure(true)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
 
         ResponseCookie sessionCookie = ResponseCookie.from("sessionId", sessionId)
                 .httpOnly(false)
-                .secure(false)
-                .sameSite("Strict")
+                .secure(true)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
