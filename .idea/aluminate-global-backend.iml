@@ -3,16 +3,4 @@
   <component name="AdditionalModuleElements">
     <content url="file://$MODULE_DIR$" />
   </component>
-  <component name="FacetManager">
-    <facet type="jpa" name="JPA">
-      <configuration>
-        <setting name="validation-enabled" value="true" />
-        <setting name="provider-name" value="Hibernate" />
-        <datasource-mapping>
-          <factory-entry name="entityManagerFactory" value="dcb0a560-23ff-49b8-a9e0-f9b8d5b3f4c8" />
-        </datasource-mapping>
-        <naming-strategy-map />
-      </configuration>
-    </facet>
-  </component>
 </module>

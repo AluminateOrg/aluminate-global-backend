@@ -1,6 +1,9 @@
 version: '3.9'
 
 services:
+  # -----------------------------
+  # 1. DATABASE (PostgreSQL)
+  # -----------------------------
   postgres:
     image: postgres:15
     environment:
@@ -9,30 +12,30 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks:
       - aluminate-network
 
+  # -----------------------------
+  # 2. REDIS
+  # -----------------------------
   redis:
     image: redis:7
-    ports:
-      - "6379:6379"
     networks:
       - aluminate-network
 
+  # -----------------------------
+  # 3. GLOBAL BACKEND (Spring Boot)
+  # -----------------------------
   global-backend:
     build:
       context: ./aluminate-global-backend
       dockerfile: Dockerfile
-      args:
-        GLOBAL_PORT: ${GLOBAL_PORT}
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      SPRING_REDIS_HOST: ${SPRING_REDIS_HOST}
-      SPRING_REDIS_PORT: ${SPRING_REDIS_PORT}
+      SPRING_DATA_REDIS_HOST: ${SPRING_REDIS_HOST}
+      SPRING_DATA_REDIS_PORT: ${SPRING_REDIS_PORT}
       SPRING_KAFKA_BOOTSTRAP_SERVERS: ${SPRING_KAFKA_BOOTSTRAP_SERVERS}
       KAFKA_TOPIC_GLOBAL_EVENTS: ${KAFKA_TOPIC_GLOBAL_EVENTS}
       JWT_SECRET: ${JWT_SECRET}
@@ -46,50 +49,69 @@ services:
       SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
       ORG_TEMPLATE_PATH: /app/org-template
-    ports:
-      - "${GLOBAL_PORT}:${GLOBAL_PORT}"
     depends_on:
       - postgres
       - redis
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./org-template:/app/org-template
+      - ../aluminate/aluminate-organization-backend:/app/aluminate/aluminate-organization-backend:ro
+      - ../aluminate/aluminate-organization-frontend:/app/aluminate/aluminate-organization-frontend:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.global-backend.rule=Host(`global.${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.global-backend.entrypoints=websecure"
+      - "traefik.http.routers.global-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.global-backend.loadbalancer.server.port=8080"
     networks:
       - aluminate-network
-    volumes:
-    - /var/run/docker.sock:/var/run/docker.sock
-    - ./org-template:/app/org-template
-    - ../aluminate/aluminate-organization-backend:/app/aluminate/aluminate-organization-backend:ro
-    - ../aluminate/aluminate-organization-frontend:/app/aluminate/aluminate-organization-frontend:ro
 
+  # -----------------------------
+  # 4. WEBSITE FRONTEND
+  # -----------------------------
   website-frontend:
     build:
       context: ./aluminate-website-frontend
       dockerfile: Dockerfile
       args:
-        WEBSITE_FRONTEND_PORT: ${WEBSITE_FRONTEND_PORT}
-        NEXT_PUBLIC_BACKEND_URL: "${DOMAIN_LINK}:${GLOBAL_PORT}"
+        NEXT_PUBLIC_BACKEND_URL: "https://global.${TRAEFIK_HOST}"
         NEXT_PUBLIC_API_PREFIX: "${API_PREFIX}"
         NEXT_PUBLIC_GLOBAL_PUBLIC_KEY: "${NEXT_PUBLIC_GLOBAL_PUBLIC_KEY}"
         NEXT_PUBLIC_PAYHERE_MERCHANT_ID: "${PAYHERE_MERCHANT_ID}"
-    ports:
-      - "${WEBSITE_FRONTEND_PORT}:${WEBSITE_FRONTEND_PORT}"
     depends_on:
       - global-backend
+    environment:
+      PORT: 3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.website.rule=Host(`${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.website.entrypoints=websecure"
+      - "traefik.http.routers.website.tls.certresolver=letsencrypt"
+      - "traefik.http.services.website.loadbalancer.server.port=3000"
     networks:
       - aluminate-network
-    
 
+  # -----------------------------
+  # 5. ADMIN FRONTEND
+  # -----------------------------
   admin-frontend:
     build:
       context: ./aluminate-admin-frontend
       dockerfile: Dockerfile
       args:
-        ADMIN_FRONTEND_PORT: ${ADMIN_FRONTEND_PORT}
-        NEXT_PUBLIC_BACKEND_URL: "${DOMAIN_LINK}:${GLOBAL_PORT}"
+        NEXT_PUBLIC_BACKEND_URL: "https://global.${TRAEFIK_HOST}"
         NEXT_PUBLIC_API_PREFIX: "${API_PREFIX}"
         NEXT_PUBLIC_GLOBAL_PUBLIC_KEY: ${NEXT_PUBLIC_GLOBAL_PUBLIC_KEY}
-    ports:
-      - "${ADMIN_FRONTEND_PORT}:${ADMIN_FRONTEND_PORT}"
     depends_on:
       - global-backend
+    environment:
+      PORT: 3000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin.rule=Host(`admin.${TRAEFIK_HOST}`)"
+      - "traefik.http.routers.admin.entrypoints=websecure"
+      - "traefik.http.routers.admin.tls.certresolver=letsencrypt"
+      - "traefik.http.services.admin.loadbalancer.server.port=3000"
     networks:
       - aluminate-network
 

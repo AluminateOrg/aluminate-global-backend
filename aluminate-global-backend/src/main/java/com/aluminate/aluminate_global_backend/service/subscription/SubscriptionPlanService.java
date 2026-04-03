@@ -6,6 +6,7 @@ import com.aluminate.aluminate_global_backend.model.PlanFeature;
 import com.aluminate.aluminate_global_backend.model.SubscriptionPlan;
 import com.aluminate.aluminate_global_backend.model.SubscriptionPlanFeature;
 import com.aluminate.aluminate_global_backend.repository.FeaturesRepository;
+import com.aluminate.aluminate_global_backend.repository.PlanFeatureRepository;
 import com.aluminate.aluminate_global_backend.repository.SubscriptionPlanRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,14 +20,17 @@ public class SubscriptionPlanService {
 
     private final SubscriptionPlanRepository subscriptionPlanRepository;
     private final FeaturesRepository featuresRepository;
+    private final PlanFeatureRepository planFeatureRepository;
 
-    public SubscriptionPlanService(SubscriptionPlanRepository subscriptionPlanRepository, FeaturesRepository featuresRepository) {
+    public SubscriptionPlanService(SubscriptionPlanRepository subscriptionPlanRepository, FeaturesRepository featuresRepository,
+                                   PlanFeatureRepository planFeatureRepository) {
+        this.planFeatureRepository = planFeatureRepository;
         this.subscriptionPlanRepository = subscriptionPlanRepository;
         this.featuresRepository = featuresRepository;
     }
 
     @Transactional
-    public SubscriptionPlan createSubscriptionPlan(SubscriptionPlanRequest request) {
+    public SubscriptionPlan createSubscriptionPlan(SubscriptionPlanRequest request) throws RuntimeException {
         SubscriptionPlan plan = SubscriptionPlan.builder()
                 .name(request.getName())
                 .price(request.getPrice())
@@ -40,7 +44,7 @@ public class SubscriptionPlanService {
         if (request.getFeature() != null) {
             List<SubscriptionPlanFeature> featureEntities  = request.getFeature().stream()
                     .map(f -> {
-                        PlanFeature planFeature = featuresRepository.findById(f.getFeatureId())
+                        PlanFeature planFeature = planFeatureRepository.findById(f.getFeatureId())
                                 .orElseThrow(() -> new RuntimeException("Feature not found for ID: " + f.getFeatureId()));
                         SubscriptionPlanFeature entity = new SubscriptionPlanFeature();
                         entity.setPlanFeature(planFeature);
@@ -77,7 +81,7 @@ public class SubscriptionPlanService {
             if (request.getFeature() != null) {
                 List<SubscriptionPlanFeature> featureEntities = request.getFeature().stream()
                         .map(f -> {
-                            PlanFeature planFeature = featuresRepository.findById(f.getFeatureId())
+                            PlanFeature planFeature = planFeatureRepository.findById(f.getFeatureId())
                                     .orElseThrow(() -> new RuntimeException("Feature not found for ID: " + f.getFeatureId()));
                             SubscriptionPlanFeature entity = new SubscriptionPlanFeature();
                             entity.setPlanFeature(planFeature);

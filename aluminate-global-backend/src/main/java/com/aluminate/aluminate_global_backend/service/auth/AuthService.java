@@ -64,25 +64,25 @@ public class AuthService {
         String csrfToken = csrfTokenService.generateAndStoreToken(sessionId);
 
         ResponseCookie jwtCookie = ResponseCookie.from("jwt", token)
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Strict")
+                .httpOnly(false)
+                .secure(true)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
 
         ResponseCookie csrfCookie = ResponseCookie.from("csrf-token", csrfToken)
                 .httpOnly(false)
-                .secure(false)
-                .sameSite("Strict")
+                .secure(true)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
 
         ResponseCookie sessionCookie = ResponseCookie.from("sessionId", sessionId)
                 .httpOnly(false)
-                .secure(false)
-                .sameSite("Strict")
+                .secure(true)
+                .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
@@ -243,6 +243,7 @@ public class AuthService {
                 admin.getPhone()
         );
         OrganizationGlobalDTO orgDTO = new OrganizationGlobalDTO(
+                org.getId(),
                 org.getOrganizationName(),
                 org.getMaxMemberCount(),
                 org.getCurrentMemberCount(),
