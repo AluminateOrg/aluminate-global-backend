@@ -64,9 +64,9 @@ public class AuthService {
         String csrfToken = csrfTokenService.generateAndStoreToken(sessionId);
 
         ResponseCookie jwtCookie = ResponseCookie.from("jwt", token)
-                .httpOnly(false)
+                .httpOnly(true)
                 .secure(true)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
@@ -74,7 +74,7 @@ public class AuthService {
         ResponseCookie csrfCookie = ResponseCookie.from("csrf-token", csrfToken)
                 .httpOnly(false)
                 .secure(true)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
@@ -82,7 +82,7 @@ public class AuthService {
         ResponseCookie sessionCookie = ResponseCookie.from("sessionId", sessionId)
                 .httpOnly(false)
                 .secure(true)
-                .sameSite("Lax")
+                .sameSite("None")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
