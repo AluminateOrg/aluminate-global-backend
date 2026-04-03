@@ -64,7 +64,7 @@ public class AuthService {
         String csrfToken = csrfTokenService.generateAndStoreToken(sessionId);
 
         ResponseCookie jwtCookie = ResponseCookie.from("jwt", token)
-                .httpOnly(true)
+                .httpOnly(false)
                 .secure(true)
                 .sameSite("Lax")
                 .path("/")
