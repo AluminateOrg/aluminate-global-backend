@@ -67,6 +67,7 @@ public class AuthService {
                 .httpOnly(true)
                 .secure(true)
                 .sameSite("None")
+                .domain(".athenyxsystems.com")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
@@ -75,6 +76,7 @@ public class AuthService {
                 .httpOnly(false)
                 .secure(true)
                 .sameSite("None")
+                .domain(".athenyxsystems.com")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
@@ -83,6 +85,7 @@ public class AuthService {
                 .httpOnly(false)
                 .secure(true)
                 .sameSite("None")
+                .domain(".athenyxsystems.com")
                 .path("/")
                 .maxAge(Duration.ofDays(1))
                 .build();
