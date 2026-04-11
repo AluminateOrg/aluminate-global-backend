@@ -1,0 +1,93 @@
+name: Aluminate Global Backend CD
+
+on:
+  push:
+    branches: [ production ]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: global-backend-cd
+  cancel-in-progress: true
+
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -----------------------------
+      # Login to GHCR
+      # -----------------------------
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # -----------------------------
+      # Set image tag
+      # -----------------------------
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      # -----------------------------
+      # Build Docker image
+      # -----------------------------
+      - name: Build Docker image
+        working-directory: aluminate-global-backend
+        run: |
+          docker build \
+            -t ghcr.io/aluminate/global-backend:${{ env.IMAGE_TAG }} \
+            -t ghcr.io/aluminate/global-backend:latest \
+            --build-arg GLOBAL_PORT=${{ secrets.GLOBAL_PORT }} \
+            .
+
+      # -----------------------------
+      # Push Docker image
+      # -----------------------------
+      - name: Push Docker image
+        run: |
+          docker push ghcr.io/aluminate/global-backend:${{ env.IMAGE_TAG }}
+          docker push ghcr.io/aluminate/global-backend:latest
+
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -euo pipefail
+
+            echo "Pulling latest image..."
+            docker pull ghcr.io/aluminate/global-backend:latest
+
+            echo "Restarting container..."
+            cd /opt/aluminate
+            docker compose up -d --force-recreate global-backend
+
+            echo "Cleaning unused images..."
+            docker image prune -f
+
+            echo "Deployment complete"
+
+
+  notify:
+    name: Success Notification
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Success message
+        run: echo "🚀 Global Backend deployed successfully"
