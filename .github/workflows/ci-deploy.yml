@@ -30,6 +30,7 @@ jobs:
           cache: maven
 
       - name: Build Project (Skip Tests)
+        working-directory: aluminate-global-backend/aluminate-global-backend
         run: mvn -B clean package -DskipTests --no-transfer-progress
 
       - name: Comment PR Success
