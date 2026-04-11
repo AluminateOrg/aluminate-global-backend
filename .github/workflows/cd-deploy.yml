@@ -2,11 +2,11 @@ name: Aluminate Global Backend CI/CD (UAT)
 
 on:
   pull_request:
-    branches: [ uat ]
+    branches: [ production ]
     types: [opened, synchronize, reopened]
 
   push:
-    branches: [ uat ]
+    branches: [ production ]
 
 permissions:
   contents: read
