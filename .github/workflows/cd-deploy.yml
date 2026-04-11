@@ -11,7 +11,6 @@ concurrency:
   group: production-cd
   cancel-in-progress: true
 
-
 jobs:
   deploy:
     name: Build & Deploy
@@ -20,9 +19,6 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-
-      - name: Debug Structure
-        run: ls -R
 
       # ----------------------------
       # Setup Java
@@ -38,16 +34,18 @@ jobs:
       # Build JAR (NO TESTS)
       # ----------------------------
       - name: Build Application
-        working-directory: aluminate-global-backend/aluminate-global-backend
+        working-directory: aluminate-global-backend
         run: mvn -B clean package -DskipTests --no-transfer-progress
 
       # ----------------------------
       # Build Docker Image
+      # (Dockerfile is inside aluminate-global-backend/)
       # ----------------------------
       - name: Build Docker Image
-        working-directory: aluminate-global-backend/aluminate-global-backend
+        working-directory: aluminate-global-backend
         run: |
           docker build --pull \
+            --build-arg PORT=${{ secrets.GLOBAL_PORT }} \
             -t aluminate/global-backend:${{ github.sha }} \
             -t aluminate/global-backend:latest .
 
@@ -68,6 +66,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           source: backend.tar.gz
           target: /opt/aluminate/global-backend/
+          rm: false
 
       # ----------------------------
       # Deploy on server
@@ -80,7 +79,6 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -euo pipefail
-
             cd /opt/aluminate/global-backend
 
             echo "📦 Loading Docker image..."
@@ -95,10 +93,13 @@ jobs:
             echo "🧼 Cleaning images..."
             docker image prune -f
 
-            echo "📊 Status:"
+            echo "⏳ Waiting for startup..."
+            sleep 15
+
+            echo "📊 Container status:"
             docker ps | grep global-backend || true
 
-            echo "📜 Logs:"
+            echo "📜 Recent logs:"
             docker logs global-backend --tail=50 || true
 
             echo "✅ Deployment complete"
