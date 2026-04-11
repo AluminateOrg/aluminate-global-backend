@@ -35,6 +35,7 @@ jobs:
       # Build JAR (NO TESTS)
       # ----------------------------
       - name: Build Application
+        working-directory: aluminate-global-backend/aluminate-global-backend
         run: mvn -B clean package -DskipTests --no-transfer-progress
 
       # ----------------------------
