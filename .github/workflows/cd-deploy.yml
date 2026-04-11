@@ -14,12 +14,15 @@ concurrency:
 
 jobs:
   deploy:
-    name: Build & Deploy to Production Server
+    name: Build & Deploy
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Debug Structure
+        run: ls -R
 
       # ----------------------------
       # Setup Java
@@ -39,24 +42,25 @@ jobs:
         run: mvn -B clean package -DskipTests --no-transfer-progress
 
       # ----------------------------
-      # Build Docker Image (LOCAL ONLY)
+      # Build Docker Image
       # ----------------------------
       - name: Build Docker Image
+        working-directory: aluminate-global-backend/aluminate-global-backend
         run: |
           docker build --pull \
             -t aluminate/global-backend:${{ github.sha }} \
             -t aluminate/global-backend:latest .
 
       # ----------------------------
-      # Save as TAR
+      # Save Docker Image
       # ----------------------------
       - name: Save Docker Image
         run: docker save aluminate/global-backend:latest | gzip > backend.tar.gz
 
       # ----------------------------
-      # Copy TAR to server
+      # Copy to server
       # ----------------------------
-      - name: Copy to Server
+      - name: Copy Image to Server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DROPLET_HOST }}
@@ -79,25 +83,22 @@ jobs:
 
             cd /opt/aluminate/global-backend
 
-            echo "📦 Loading image..."
+            echo "📦 Loading Docker image..."
             docker load < backend.tar.gz
 
-            echo "🧹 Cleaning archive..."
+            echo "🧹 Removing archive..."
             rm -f backend.tar.gz
 
             echo "🚀 Restarting container..."
             docker compose -f /opt/aluminate/config/docker-compose.yml up -d --force-recreate --no-deps global-backend
 
-            echo "🧼 Cleaning unused images..."
+            echo "🧼 Cleaning images..."
             docker image prune -f
 
-            echo "⏳ Waiting for startup..."
-            sleep 10
-
-            echo "📊 Container status:"
+            echo "📊 Status:"
             docker ps | grep global-backend || true
 
             echo "📜 Logs:"
             docker logs global-backend --tail=50 || true
 
-            echo "✅ Production deployment complete"
+            echo "✅ Deployment complete"
