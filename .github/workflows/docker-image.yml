@@ -21,6 +21,10 @@ jobs:
     name: Test Application
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: aluminate-global-backend
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -63,6 +67,7 @@ jobs:
       # Build Docker image
       # -----------------------------
       - name: Build Docker image
+        working-directory: aluminate-global-backend
         run: |
           docker build \
             -t ghcr.io/aluminate/global-backend:${{ env.IMAGE_TAG }} \
