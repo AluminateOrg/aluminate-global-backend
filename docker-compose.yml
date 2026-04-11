@@ -27,9 +27,7 @@ services:
   # 3. GLOBAL BACKEND (Spring Boot)
   # -----------------------------
   global-backend:
-    build:
-      context: ./aluminate-global-backend
-      dockerfile: Dockerfile
+    image: ghcr.io/aluminate/global-backend:latest
     environment:
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
@@ -70,6 +68,7 @@ services:
   # 4. WEBSITE FRONTEND
   # -----------------------------
   website-frontend:
+    image: ghcr.io/aluminate/website-frontend:latest
     build:
       context: ./aluminate-website-frontend
       dockerfile: Dockerfile
@@ -95,6 +94,7 @@ services:
   # 5. ADMIN FRONTEND
   # -----------------------------
   admin-frontend:
+    image: ghcr.io/aluminate/admin-frontend:latest
     build:
       context: ./aluminate-admin-frontend
       dockerfile: Dockerfile
