@@ -86,6 +86,7 @@ services:
   # 5. ADMIN FRONTEND
   # -----------------------------
   admin-frontend:
+  #ADMIN
     image: aluminate/admin-frontend:latest
     depends_on:
       - global-backend
