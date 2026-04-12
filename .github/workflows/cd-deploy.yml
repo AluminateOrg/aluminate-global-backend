@@ -1,4 +1,4 @@
-name: Production CD
+name: Global Backend CD
 
 on:
   push:
@@ -8,21 +8,21 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-cd
+  group: production-global-backend-cd
   cancel-in-progress: true
 
 jobs:
   deploy:
-    name: Build & Deploy
+    name: Deploy to Production
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aluminate-global-backend
 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # ----------------------------
-      # Setup Java
-      # ----------------------------
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -30,48 +30,32 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      # ----------------------------
-      # Build JAR (NO TESTS)
-      # ----------------------------
       - name: Build Application
-        working-directory: aluminate-global-backend
         run: mvn -B clean package -DskipTests --no-transfer-progress
 
-      # ----------------------------
-      # Build Docker Image
-      # (Dockerfile is inside aluminate-global-backend/)
-      # ----------------------------
       - name: Build Docker Image
-        working-directory: aluminate-global-backend
         run: |
           docker build --pull \
-            --build-arg PORT=${{ secrets.GLOBAL_PORT }} \
+            --build-arg GLOBAL_PORT=${{ secrets.GLOBAL_PORT }} \
             -t aluminate/global-backend:${{ github.sha }} \
-            -t aluminate/global-backend:latest .
+            -t aluminate/global-backend:latest \
+            .
 
-      # ----------------------------
-      # Save Docker Image
-      # ----------------------------
       - name: Save Docker Image
-        run: docker save aluminate/global-backend:latest | gzip > backend.tar.gz
+        run: docker save aluminate/global-backend:latest | gzip > global-backend.tar.gz
 
-      # ----------------------------
-      # Copy to server
-      # ----------------------------
-      - name: Copy Image to Server
+      - name: Copy Image to Droplet
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DROPLET_HOST }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: backend.tar.gz
-          target: /opt/aluminate/global-backend/
+          source: aluminate-global-backend/global-backend.tar.gz
+          target: /opt/aluminate/app/aluminate-global-backend/
+          strip_components: 1
           rm: false
 
-      # ----------------------------
-      # Deploy on server
-      # ----------------------------
-      - name: Deploy on Server
+      - name: Load & Restart on Droplet
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DROPLET_HOST }}
@@ -79,27 +63,29 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -euo pipefail
-            cd /opt/aluminate/global-backend
 
-            echo "📦 Loading Docker image..."
-            docker load < backend.tar.gz
+            echo "Loading new Docker image..."
+            cd /opt/aluminate/app/aluminate-global-backend
+            docker load < global-backend.tar.gz
+            rm -f global-backend.tar.gz
 
-            echo "🧹 Removing archive..."
-            rm -f backend.tar.gz
+            echo "Recreating global-backend container..."
+            docker compose -f /opt/aluminate/app/aluminate-global-backend/docker-compose.yml \
+              up -d --force-recreate --no-deps global-backend
 
-            echo "🚀 Restarting container..."
-            docker compose -f /opt/aluminate/config/docker-compose.yml up -d --force-recreate --no-deps global-backend
-
-            echo "🧼 Cleaning images..."
+            echo "Cleaning unused images..."
             docker image prune -f
 
-            echo "⏳ Waiting for startup..."
+            echo "Waiting for startup..."
             sleep 15
 
-            echo "📊 Container status:"
-            docker ps | grep global-backend || true
+            echo "Container status:"
+            docker ps | grep global-backend
 
-            echo "📜 Recent logs:"
-            docker logs global-backend --tail=50 || true
+            echo "Recent logs:"
+            docker logs global-backend --tail=50
 
-            echo "✅ Deployment complete"
+            echo "Deployment complete"
+
+      - name: Deployment Success
+        run: echo "Global Backend deployed to Production"
