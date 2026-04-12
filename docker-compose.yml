@@ -87,13 +87,6 @@ services:
   # -----------------------------
   admin-frontend:
     image: aluminate/admin-frontend:latest
-    build:
-      context: ./aluminate-admin-frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_BACKEND_URL: "https://global.${TRAEFIK_HOST}"
-        NEXT_PUBLIC_API_PREFIX: "${API_PREFIX}"
-        NEXT_PUBLIC_GLOBAL_PUBLIC_KEY: ${NEXT_PUBLIC_GLOBAL_PUBLIC_KEY}
     depends_on:
       - global-backend
     environment:
