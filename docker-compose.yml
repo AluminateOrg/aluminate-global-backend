@@ -69,14 +69,6 @@ services:
   # -----------------------------
   website-frontend:
     image: aluminate/website-frontend:latest
-    build:
-      context: ./aluminate-website-frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_BACKEND_URL: "https://global.${TRAEFIK_HOST}"
-        NEXT_PUBLIC_API_PREFIX: "${API_PREFIX}"
-        NEXT_PUBLIC_GLOBAL_PUBLIC_KEY: "${NEXT_PUBLIC_GLOBAL_PUBLIC_KEY}"
-        NEXT_PUBLIC_PAYHERE_MERCHANT_ID: "${PAYHERE_MERCHANT_ID}"
     depends_on:
       - global-backend
     environment:
