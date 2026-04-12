@@ -83,7 +83,7 @@ jobs:
             docker ps | grep global-backend
 
             echo "Recent logs:"
-            docker logs global-backend --tail=50
+            docker logs aluminate-global-backend-global-backend-1 --tail=50
 
             echo "Deployment complete"
 
