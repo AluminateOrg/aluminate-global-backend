@@ -40,16 +40,17 @@ public class EmailService {
     }
 
     public void sendOtpMail(String to, String otp) throws MessagingException, IOException {
-        logger.info("Sending OTP to " + to + " with OTP: " + otp);
+        logger.info("Initiated Sending OTP to " + to + " with OTP: " + otp);
         MimeMessage mimeMessage = mailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
         helper.setFrom(fromAddress);
         helper.setTo(to);
-        helper.setSubject("OTP code for verification");
-
+        helper.setSubject("OTP code for verification from: " + fromAddress);
+        logger.info("Created helper for OTP email, now loading HTML template");
         String htmlContent = getHtmlTemplate("templates/otp-email.html");
         htmlContent = htmlContent.replace("{{OTP}}", otp);
         helper.setText(htmlContent, true);
+        logger.info("Sending OTP email to " + to);
         mailSender.send(mimeMessage);
 
     }
