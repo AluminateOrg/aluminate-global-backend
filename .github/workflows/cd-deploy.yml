@@ -70,7 +70,9 @@ jobs:
             rm -f global-backend.tar.gz
 
             echo "Recreating global-backend container..."
-            docker compose -f /opt/aluminate/app/aluminate-global-backend/docker-compose.yml \
+            docker compose \
+              -f /opt/aluminate/config/docker-compose.yml \
+              --env-file /opt/aluminate/config/global.env \
               up -d --force-recreate --no-deps global-backend
 
             echo "Cleaning unused images..."

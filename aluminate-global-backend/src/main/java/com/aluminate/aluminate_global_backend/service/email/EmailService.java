@@ -22,8 +22,11 @@ public class EmailService {
     private final JavaMailSender mailSender;
     private static final Logger logger = Logger.getLogger(AuthController.class.getName());
 
-    @Value("${spring.mail.username}")
+    @Value("${SENDGRID_FROM_ADDRESS}")
     private String fromAddress;
+
+    @Value("${SENDGRID_FROM_NAME}")
+    private String appName;
 
     public EmailService(JavaMailSender mailSender, @Value("${spring.mail.username}") String fromAddress) {
         this.fromAddress = fromAddress;
@@ -45,7 +48,7 @@ public class EmailService {
         MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
         helper.setFrom(fromAddress);
         helper.setTo(to);
-        helper.setSubject("OTP code for verification from: " + fromAddress);
+        helper.setSubject("OTP code for verification from: " + appName);
         logger.info("Created helper for OTP email, now loading HTML template");
         String htmlContent = getHtmlTemplate("templates/otp-email.html");
         htmlContent = htmlContent.replace("{{OTP}}", otp);
